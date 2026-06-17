@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Banquet">
+<meta name="theme-color" content="#1a1815">
+<title>Banquet Consumption Sheet</title>
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f3ef;--surface:#fff;--surface2:#f0ede8;
+  --border:#ddd9d2;--border2:#c8c3ba;
+  --text:#1a1815;--text2:#6b665e;--text3:#9e9990;
+  --danger:#b84040;--danger-bg:#fdf2f2;
+  --green:#2d7a4f;--green-bg:#edf7f1;
+  --blue:#1e5fa8;
+  --radius:10px;--radius-sm:6px;
+}
+[data-theme="dark"]{
+  --bg:#0f0e0d;--surface:#1a1815;--surface2:#242018;
+  --border:#2e2b24;--border2:#3d3930;
+  --text:#f0ede8;--text2:#9e9888;--text3:#5e5a52;
+  --danger:#e05555;--danger-bg:#2a1515;
+  --green:#3d9e6a;--green-bg:#0e2318;
+  --blue:#4a8fd4;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
+
+/* ── SETUP ── */
+#setupScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:900px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.07)}
+.setup-header{background:var(--text);color:#fff;padding:1.5rem 2rem;display:flex;align-items:center;gap:12px}
+.setup-header h1{font-size:18px;font-weight:600;letter-spacing:-0.3px}
+.setup-header p{font-size:12px;opacity:0.6;margin-top:2px}
+.setup-logo{width:36px;height:36px;background:rgba(255,255,255,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.setup-logo svg{width:20px;height:20px;fill:white}
+.setup-body{padding:1.5rem 2rem;max-height:70vh;overflow-y:auto}
+.setup-event{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:1.5rem}
+.setup-event label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:4px}
+.setup-event input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);outline:none}
+.setup-event input:focus{border-color:var(--border2);background:var(--surface)}
+.setup-section{margin-bottom:1.25rem}
+.setup-section-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:12px;font-weight:600;color:var(--text2)}
+.setup-section-head .price-tag{font-size:11px;color:var(--green);font-weight:500;font-family:'DM Mono',monospace}
+.setup-section-head .sel-btns{display:flex;gap:8px}
+.sel-all{font-size:11px;color:var(--text3);cursor:pointer;font-weight:400}
+.sel-all:hover{color:var(--text)}
+.setup-items{border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-sm) var(--radius-sm);display:flex;flex-wrap:wrap}
+.setup-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-width:190px;flex:1 1 190px;transition:background 0.1s;user-select:none}
+.setup-item:hover{background:var(--surface2)}
+.setup-item.checked{background:var(--green-bg)}
+.setup-item input[type=checkbox]{accent-color:var(--green);width:14px;height:14px;flex-shrink:0}
+.setup-item span{font-size:12px;color:var(--text)}
+.setup-item.checked span{color:var(--green);font-weight:500}
+.setup-footer{padding:1rem 2rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;align-items:center}
+.setup-footer p{font-size:12px;color:var(--text3);flex:1}
+
+/* ── APP ── */
+#appScreen{display:none}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:50;gap:8px}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.logo{font-size:13px;font-weight:600;letter-spacing:-0.3px;display:flex;align-items:center;gap:7px}
+.logo-icon{width:26px;height:26px;background:var(--text);border-radius:5px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:14px;height:14px;fill:white}
+.event-info{font-size:12px;color:var(--text2);border-left:1px solid var(--border);padding-left:10px}
+.topbar-right{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:11.5px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;transition:background 0.12s;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn svg{width:13px;height:13px;flex-shrink:0}
+.btn-primary{background:var(--text);color:#fff;border-color:var(--text)}
+.btn-primary:hover{background:#333}
+.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-green:hover{background:#245f3e}
+.btn-danger{color:var(--danger);border-color:#e8c4c4}
+.btn-danger:hover{background:var(--danger-bg)}
+
+.layout{display:flex;height:calc(100vh - 52px)}
+.sidebar{width:178px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:1rem 0;overflow-y:auto}
+.sidebar-group{margin-bottom:1.25rem}
+.sidebar-label{font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);padding:0 12px;margin-bottom:4px}
+.sidebar-item{display:flex;align-items:center;gap:7px;padding:7px 12px;cursor:pointer;font-size:12px;color:var(--text2);border-right:2px solid transparent;transition:background 0.1s,color 0.1s}
+.sidebar-item:hover{background:var(--surface2);color:var(--text)}
+.sidebar-item.active{background:var(--surface2);color:var(--text);font-weight:500;border-right-color:var(--text)}
+.sidebar-item svg{width:13px;height:13px;flex-shrink:0;opacity:0.55}
+.sidebar-item.active svg{opacity:1}
+
+.main{flex:1;overflow-y:auto;padding:1.25rem}
+.page{display:none}
+.page.show{display:block}
+.page-title{font-size:15px;font-weight:600;margin-bottom:3px;letter-spacing:-0.3px}
+.page-subtitle{font-size:11.5px;color:var(--text3);margin-bottom:1rem}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem}
+.ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1rem}
+
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--text3);padding:7px 10px;background:var(--surface2);border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;vertical-align:middle}
+td:first-child{text-align:left}
+tr:last-child td{border-bottom:none}
+tr.tot-row td{background:var(--surface2);font-weight:600;font-size:11.5px}
+tr.sales-row td{background:#f0f7f3;font-weight:700;font-size:12px;color:var(--green)}
+tr:hover:not(.tot-row):not(.sales-row) td{background:#faf9f7}
+
+.item-name{font-size:12px;font-weight:500}
+.item-sub{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:1px}
+.tare-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.calc-val{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text2)}
+.cons-val{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--danger);font-weight:600}
+.price-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.sales-val{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--green);font-weight:600}
+.tot-sales{font-family:'DM Mono',monospace;font-size:12px;color:var(--green);font-weight:700}
+
+input.num{width:76px;padding:4px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:11.5px;font-family:'DM Mono',monospace;text-align:right;outline:none;transition:border-color 0.15s,background 0.15s}
+input.num:focus{border-color:var(--border2);background:var(--surface)}
+tr.warn-row td{background:#fffbeb!important}
+tr.warn-row td.cons-val{color:#92400e}
+.warn-badge{font-size:9px;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:middle}
+.add-btn{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 7px;border:1px solid #2d7a4f;border-radius:11px;background:transparent;color:#2d7a4f;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font-sans);transition:background 0.12s,color 0.12s;white-space:nowrap;line-height:1}
+.add-btn:hover{background:#2d7a4f;color:#fff}
+.add-btn.has-value{background:#edf7f1;border-color:#2d7a4f;color:#2d7a4f;font-size:11px;font-weight:600;min-width:28px;padding:0 8px}
+.add-input-wrap{display:none;align-items:center;gap:5px;margin-top:5px}
+.add-input-wrap.open{display:flex}
+.add-input-wrap input.num{width:80px}
+.add-confirm{padding:3px 8px;border:1px solid #2d7a4f;border-radius:4px;background:#2d7a4f;color:#fff;font-size:11px;cursor:pointer;font-family:var(--font-sans)}
+.add-cancel{padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text2);font-size:11px;cursor:pointer;font-family:var(--font-sans)}
+
+/* summary */
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:1rem}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.sum-card .sc-label{font-size:10.5px;color:var(--text3);margin-bottom:2px;font-weight:500}
+.sum-card .sc-val{font-size:19px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px}
+.sum-card .sc-unit{font-size:9.5px;color:var(--text3);margin-top:1px}
+.sum-card .sc-sales{font-size:11px;color:var(--green);font-weight:600;margin-top:4px;font-family:'DM Mono',monospace}
+
+.grand-total-box{background:var(--text);color:#fff;border-radius:var(--radius);padding:14px 18px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between}
+.grand-total-box .gt-label{font-size:12px;opacity:0.7}
+.grand-total-box .gt-val{font-size:24px;font-weight:600;font-family:'DM Mono',monospace}
+
+/* modals */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;width:380px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,0.12)}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:5px}
+.modal p{font-size:12px;color:var(--text2);margin-bottom:12px}
+.modal input[type=text]{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);outline:none;margin-bottom:12px}
+.modal input[type=text]:focus{border-color:var(--border2)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.saves-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+.save-item{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface2)}
+.save-item .si-name{font-size:13px;font-weight:500}
+.save-item .si-date{font-size:10.5px;color:var(--text3);margin-top:2px}
+.save-item .si-btns{display:flex;gap:6px}
+.empty-msg{font-size:12px;color:var(--text3);padding:16px 0;text-align:center}
+
+.pdf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:center;justify-content:center}
+.pdf-overlay.open{display:flex}
+.pdf-box{background:var(--surface);border-radius:var(--radius);padding:1.5rem 2rem;text-align:center;min-width:220px}
+.pdf-box p{font-size:13px;font-weight:500;margin-bottom:8px}
+.pdf-box small{font-size:11px;color:var(--text3)}
+.spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:500;opacity:0;transform:translateY(6px);transition:opacity 0.25s,transform 0.25s;pointer-events:none;z-index:999}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ── MOBILE RESPONSIVE ── */
+
+/* Mobile bottom nav */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:60;padding:0 0 env(safe-area-inset-bottom,0)}
+.mobile-nav-inner{display:flex;overflow-x:auto;scrollbar-width:none}
+.mobile-nav-inner::-webkit-scrollbar{display:none}
+.mobile-nav-tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;cursor:pointer;font-size:10px;color:var(--text3);white-space:nowrap;border-bottom:2px solid transparent;flex-shrink:0;transition:color 0.15s}
+.mobile-nav-tab.active{color:var(--text);border-bottom-color:var(--text);font-weight:600}
+.mobile-nav-tab svg{width:18px;height:18px}
+
+/* Card layout for tables on mobile */
+.item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px}
+.item-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.item-card-name{font-size:13px;font-weight:600;color:var(--text)}
+.item-card-sales{font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--green)}
+.item-card-tare{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:1px}
+.item-card-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.item-card-field label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:3px}
+.item-card-field input.num{width:100%;font-size:16px;padding:8px 10px}
+.item-card-calc{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.calc-chip{background:var(--surface2);border-radius:6px;padding:4px 8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text2)}
+.calc-chip.cons{background:var(--danger-bg);color:var(--danger);font-weight:700}
+.calc-chip.add{background:var(--green-bg);color:var(--green);font-weight:600}
+.card-total-row{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.card-total-row .ct-label{font-size:11px;font-weight:600;color:var(--text2)}
+.card-total-row .ct-val{font-size:14px;font-weight:700;font-family:'DM Mono',monospace}
+.card-total-row .ct-val.cons{color:var(--danger)}
+.card-total-row .ct-val.sales{color:var(--green)}
+.mobile-add-btn{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 10px;border:1px solid #2d7a4f;border-radius:13px;background:transparent;color:#2d7a4f;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;line-height:1}
+.mobile-add-btn:hover{background:#2d7a4f;color:#fff}
+.mobile-add-btn.has-value{background:var(--green-bg);color:#2d7a4f;font-size:11px;font-weight:600;padding:0 10px;min-width:36px}
+.mobile-add-wrap{display:none;margin-top:8px;gap:8px;align-items:center}
+.mobile-add-wrap.open{display:flex}
+.mobile-add-wrap input.num{flex:1;font-size:16px;padding:8px 10px}
+
+/* Mobile topbar */
+@media (max-width:767px){
+  /* hide desktop sidebar */
+  .sidebar{display:none}
+  /* show mobile nav */
+  .mobile-nav{display:block}
+  /* layout takes full width, adds padding for bottom nav */
+  .layout{height:calc(100vh - 48px - 56px - env(safe-area-inset-bottom,0px))}
+  .main{padding:0.75rem;padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+  /* topbar: compact on mobile */
+  .topbar{padding:0 0.75rem;height:48px}
+  .logo{font-size:12px}
+  .logo-icon{width:22px;height:22px}
+  .event-info{font-size:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar-right .btn:not(.btn-green){display:none}
+  .topbar-right .btn-green{padding:5px 10px;font-size:11px}
+  /* show a menu button instead */
+  .topbar-menu-btn{display:flex !important}
+  /* hide table views on mobile — replaced by cards */
+  .mobile-hide-table .card{display:none}
+  .mobile-cards{display:block}
+  /* Force hide all section tables on mobile via CSS */
+  .page > .card { display: none !important; }
+  .page > div[id^="mc-"] { display: block !important; }
+  /* setup screen */
+  .setup-event{grid-template-columns:1fr 1fr !important}
+  .setup-card{max-width:100%;border-radius:0}
+  #setupScreen{padding:0;justify-content:flex-start}
+  .setup-body{max-height:none}
+  /* modals full screen on mobile */
+  .modal{width:100%;max-width:100%;border-radius:var(--radius) var(--radius) 0 0;position:fixed;bottom:0;left:0;right:0;margin:0}
+  .modal-overlay.open{align-items:flex-end}
+  /* summary cards smaller */
+  .sum-grid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+  /* grand total box */
+  .grand-total-box .gt-val{font-size:18px}
+  /* input sizes — prevent iOS zoom */
+  input.num{font-size:16px !important}
+  /* page title */
+  .page-title{font-size:14px}
+  .page-subtitle{font-size:11px}
+  /* toast at bottom above nav */
+  .toast{bottom:calc(66px + env(safe-area-inset-bottom,0px));right:12px;left:12px;text-align:center}
+}
+
+/* Desktop: ensure tables show and cards hide */
+@media (min-width:768px){
+  .page > .card { display: block !important; }
+  .page > div[id^="mc-"] { display: none !important; }
+}
+
+/* Tablet (768-1024px) */
+@media (min-width:768px) and (max-width:1024px){
+  .sidebar{width:150px}
+  .topbar-right .btn{font-size:11px;padding:5px 9px}
+  table{font-size:12px}
+  td,th{padding:5px 7px}
+  input.num{width:68px;font-size:11px}
+}
+
+/* Desktop menu btn hidden */
+.topbar-menu-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;cursor:pointer}
+/* Mobile overflow menu */
+.mobile-menu{display:none;position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0.4)}
+.mobile-menu.open{display:flex;align-items:flex-end}
+.mobile-menu-sheet{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;padding:1rem;padding-bottom:calc(1rem + env(safe-area-inset-bottom,0px))}
+.mobile-menu-sheet .btn{width:100%;justify-content:flex-start;margin-bottom:8px;padding:12px 14px;font-size:13px}
+.mobile-menu-sheet h4{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px}
+
+/* ── DARK MODE OVERRIDES ── */
+[data-theme="dark"] .setup-card { box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
+[data-theme="dark"] .grand-total-box { background: #242018; }
+[data-theme="dark"] tr.sales-row td { background: #0e2318; }
+[data-theme="dark"] tr.warn-row td { background: #2a2008 !important; }
+[data-theme="dark"] tr.warn-row td.cons-val { color: #d4a017; }
+[data-theme="dark"] .warn-badge { background: #2a2008; border-color: #5a4a00; color: #d4a017; }
+[data-theme="dark"] input.num { background: #242018; color: var(--text); border-color: var(--border); }
+[data-theme="dark"] input.num:focus { background: var(--surface); border-color: var(--border2); }
+[data-theme="dark"] .recon-card input { background: #242018; color: var(--text); }
+[data-theme="dark"] .recon-card input:focus { background: var(--surface); }
+[data-theme="dark"] textarea { background: #242018 !important; color: var(--text) !important; border-color: var(--border) !important; }
+[data-theme="dark"] .setup-event input { background: #242018; color: var(--text); }
+[data-theme="dark"] .modal input[type=text] { background: #242018; color: var(--text); }
+[data-theme="dark"] .save-item { background: #242018; }
+[data-theme="dark"] .pdf-box { background: #1a1815; color: var(--text); }
+[data-theme="dark"] .add-input-wrap input.num,
+[data-theme="dark"] .mobile-add-wrap input.num { background: #242018; }
+[data-theme="dark"] .mobile-menu-sheet { background: #1a1815; }
+[data-theme="dark"] .mobile-nav { background: #1a1815; border-top-color: var(--border); }
+[data-theme="dark"] .variance-box.zero { background: #242018; border-color: var(--border); }
+[data-theme="dark"] .variance-box.over { background: #0e2318; border-color: #1e4a30; }
+[data-theme="dark"] .variance-box.short { background: #2a1515; border-color: #4a2020; }
+[data-theme="dark"] .item-card { background: #1a1815; border-color: var(--border); }
+[data-theme="dark"] .card-total-row { background: #1a1815; border-color: var(--border); }
+[data-theme="dark"] .sum-card { background: #1a1815; border-color: var(--border); }
+[data-theme="dark"] .ticket-card { background: #1a1815; border-color: var(--border); }
+[data-theme="dark"] .bar-type-opt { background: #1a1815; color: var(--text2); }
+[data-theme="dark"] .bar-type-opt.active-host { background: #f0ede8; color: #1a1815; }
+[data-theme="dark"] .bar-type-opt.active-cash { background: var(--green); color: #fff; }
+[data-theme="dark"] .bar-type-opt.active-both { background: var(--blue); color: #fff; }
+[data-theme="dark"] .setup-item:hover { background: #242018; }
+[data-theme="dark"] .setup-item.checked { background: #0e2318; }
+
+/* bar type toggle */
+.bar-type-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:1.5rem}
+.bar-type-opt{flex:1;padding:10px 16px;text-align:center;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--text2);background:var(--surface);border:none;transition:background 0.15s,color 0.15s;border-right:1px solid var(--border)}
+.bar-type-opt:last-child{border-right:none}
+.bar-type-opt.active-host{background:#1a1815;color:#fff}
+.bar-type-opt.active-cash{background:var(--green);color:#fff}
+.bar-type-opt.active-both{background:var(--blue);color:#fff}
+.bar-type-opt .bto-icon{font-size:18px;display:block;margin-bottom:3px}
+.bar-type-opt .bto-label{font-size:12px;font-weight:600}
+.bar-type-opt .bto-desc{font-size:10px;opacity:0.75;margin-top:1px}
+
+/* cash reconciliation */
+.recon-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;max-width:600px}
+.recon-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.recon-card label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px}
+.recon-card input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:16px;font-family:'DM Mono',monospace;color:var(--text);background:var(--bg);outline:none;text-align:right}
+.recon-card input:focus{border-color:var(--border2);background:var(--surface)}
+.variance-box{border-radius:var(--radius);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;max-width:600px}
+.variance-box.over{background:#edf7f1;border:1px solid #b5dfc7}
+.variance-box.short{background:var(--danger-bg);border:1px solid #e8c4c4}
+.variance-box.zero{background:var(--surface2);border:1px solid var(--border)}
+.variance-box .vb-label{font-size:12px;font-weight:500}
+.variance-box .vb-val{font-size:20px;font-weight:700;font-family:'DM Mono',monospace}
+.variance-box.over .vb-val{color:var(--green)}
+.variance-box.short .vb-val{color:var(--danger)}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-header">
+      <div class="setup-logo"><svg viewBox="0 0 20 20"><path d="M3 4h14v2H3zm0 5h14v2H3zm0 5h9v2H3z"/></svg></div>
+      <div><h1>Banquet Consumption Sheet</h1><p>Select items you'll be serving tonight, then start the sheet.</p></div>
+    </div>
+    <div class="setup-body" id="setupBody">
+      <div style="margin-bottom:1.25rem">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Bar type</div>
+        <div class="bar-type-toggle">
+          <div class="bar-type-opt active-host" id="opt-host" onclick="setBarType('host')">
+            <span class="bto-icon">🍸</span>
+            <div class="bto-label">Host bar</div>
+            <div class="bto-desc">Group pays at end — consumption tracked</div>
+          </div>
+          <div class="bar-type-opt" id="opt-cash" onclick="setBarType('cash')">
+            <span class="bto-icon">💵</span>
+            <div class="bto-label">Cash bar</div>
+            <div class="bto-desc">Guests pay per drink — reconcile cash vs pours</div>
+          </div>
+          <div class="bar-type-opt" id="opt-both" onclick="setBarType('both')">
+            <span class="bto-icon">🍸💵</span>
+            <div class="bto-label">Host + Cash</div>
+            <div class="bto-desc">Both running — track consumption and reconcile cash</div>
+          </div>
+        </div>
+      </div>
+      <div class="setup-event" style="grid-template-columns:1fr 1fr 1fr 1fr">
+        <div><label>Date</label><input type="date" id="sDate"></div>
+        <div><label>Group / event</label><input type="text" id="sGroup" placeholder="e.g. NSTU banquet"></div>
+        <div><label>Bartender</label><input type="text" id="sBar" placeholder="e.g. Jamillah / Rocky"></div>
+        <div><label>Room</label><input type="text" id="sRoom" placeholder="e.g. BMP"></div>
+      </div>
+    </div>
+    <div class="setup-footer">
+      <p id="setupCount">Select items you'll be serving.</p>
+      <button class="btn" onclick="checkAll()">Select all</button>
+      <button class="btn" onclick="uncheckAll()">Clear all</button>
+      <button class="btn btn-primary" onclick="startSheet()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        Start sheet
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <div class="logo-icon"><svg viewBox="0 0 20 20"><path d="M3 4h14v2H3zm0 5h14v2H3zm0 5h9v2H3z"/></svg></div>
+        Banquet Sheet
+      </div>
+      <div class="event-info" id="eventInfo"></div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn" onclick="openLoadModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>Open saved</button>
+      <button class="btn" onclick="exportJSON()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>
+      <label class="btn" style="cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Import<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+      <button class="btn" onclick="openSaveModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</button>
+      <button class="btn btn-green" onclick="downloadPDF()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>Download PDF</button>
+      <button class="btn" onclick="backToSetup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>Setup</button>
+      <!-- Dark mode toggle -->
+      <button class="btn" id="darkToggleBtn" onclick="toggleDark()" title="Toggle dark mode" style="padding:6px 8px;min-width:34px">
+        <svg id="darkIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <!-- Mobile menu button — only visible on mobile -->
+      <button class="topbar-menu-btn" onclick="openMobileMenu()" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="layout">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="main" id="mainContent"></main>
+  </div>
+
+  <!-- Mobile bottom navigation -->
+  <div class="mobile-nav" id="mobileNav">
+    <div class="mobile-nav-inner" id="mobileNavInner"></div>
+  </div>
+
+  <!-- Mobile overflow menu sheet -->
+  <div class="mobile-menu" id="mobileMenu" onclick="closeMobileMenu(event)">
+    <div class="mobile-menu-sheet">
+      <h4>Menu</h4>
+      <button class="btn" onclick="openSaveModal();closeMobileMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+        Save work
+      </button>
+      <button class="btn" onclick="openLoadModal();closeMobileMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        Open saved
+      </button>
+      <button class="btn btn-green" onclick="downloadPDF();closeMobileMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+        Download PDF
+      </button>
+      <button class="btn" onclick="exportJSON();closeMobileMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export JSON
+      </button>
+      <label class="btn" style="cursor:pointer" onclick="closeMobileMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Import JSON
+        <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+      </label>
+      <button class="btn" onclick="backToSetup();closeMobileMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+        Back to setup
+      </button>
+      <button class="btn" onclick="toggleDark();closeMobileMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        Toggle dark mode
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE MODAL -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal">
+    <h3>Save current work</h3>
+    <p>Give this session a name to reload it later.</p>
+    <input type="text" id="saveName" placeholder="e.g. NSTU Apr 24" maxlength="60">
+    <div class="modal-btns">
+      <button class="btn" onclick="closeSaveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOAD MODAL -->
+<div class="modal-overlay" id="loadModal">
+  <div class="modal">
+    <h3>Open saved banquet</h3>
+    <p>Select a session to load. Current data will be replaced.</p>
+    <div class="saves-list" id="savesList"></div>
+    <div class="modal-btns" style="margin-top:12px"><button class="btn" onclick="closeLoadModal()">Close</button></div>
+  </div>
+</div>
+
+<!-- PDF OVERLAY -->
+<div class="pdf-overlay" id="pdfOverlay">
+  <div class="pdf-box"><div class="spinner"></div><p>Building PDF…</p><small>All pages included</small></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── SECTION / ITEM DEFINITIONS ───────────────────────────────────────────────
+// Each item can have an individual price OR inherit section price.
+// Per-item prices override section price (for nonAlc).
+
+const ALL_SECS = [
+  { id:"liquor",    label:"Liquor",           type:"liquor", unit:"oz",      price:11.00,
+    items:["Stolichnaya","Stolichnaya 1.14l","Smirnoff 1.14l","Smirnoff 750ml","Captain White - B22","Captain White 1.14l","Captain Spiced - B22 1.14L","Captain Spiced - B22 750ml","Captain Dark - B22 1.14L","Captain Dark - B22 750ml","Canadian Club - B22 1.14L","Canadian Club - B22 750ml","Dewars","Tanqueray","Gordons","Beefeater","Absolut","1800"] },
+  { id:"premLiq",   label:"Prem liquor",      type:"liquor", unit:"oz",      price:13.00,
+    items:["Crown Royal - B26","Grey Goose - B30","Bombay (1.75L) (B32)","Bulleit","Jim Beam","Kraken"] },
+  { id:"deluxeLiq", label:"Deluxe liquor",    type:"liquor", unit:"oz",      price:15.00,
+    items:["Johnnie Black","Glenfiddich","St. Remy - (B28)","Jack Daniels","Bulleit (Deluxe)"] },
+  { id:"liqueur",   label:"Liqueur",          type:"liquor", unit:"oz",      price:11.00,
+    items:["Baileys","Blue Curacao - R21","Kahlua - R29","Malibu - B19","Jose 1.14l","Jose - B24 750ml","Triple Sec","Cointreau"] },
+  { id:"hWine",     label:"House wine",       type:"wine",   unit:"glasses", price:12.50,
+    items:["House Red 750ml","House W 750ml","Barefoot PG 1.5l"] },
+  { id:"pWine",     label:"Prem wine",        type:"wine",   unit:"glasses", price:14.50,
+    items:["Woodbridge Merlot","Alamos","Yellow Tail PG","Romeo Rose","Marques"] },
+  { id:"domBeer",   label:"Dom beers",        type:"beer",   unit:"btl",     price:7.50,
+    items:["Keiths","Keiths Light","Budweiser","Bud Light","Coors Light"] },
+  { id:"impBeer",   label:"Import beers",     type:"beer",   unit:"btl",     price:8.50,
+    items:["Stella","Heineken/Miller Lite","Corona","Sleeman 2.0","Pabst","Kitchen Party"] },
+  { id:"coolers",   label:"Coolers",          type:"beer",   unit:"btl",     price:9.00,
+    items:["Smirnoff Ice","Annapolis Cider","Blue Lobster","Coldstream/Vodka Soda"] },
+  { id:"nonAlcBeer",label:"Non-alc beer",     type:"beer",   unit:"btl",     price:7.00,
+    items:["Corona Zero","Hazy IPA"] },
+  { id:"cocktail",      label:"Cocktails",        type:"beer",   unit:"units",   price:13.50,
+    items:["Cocktail"] },
+  { id:"sparklingWater", label:"Sparkling water",  type:"beer",   unit:"units",   price:7.00,
+    items:["Perrier","Sparkling Water"] },
+  { id:"nonAlc",         label:"Non-alc",          type:"beer",   unit:"units",   price:5.00,
+    items:["Pop","Juice","Water"] }
+];
+
+// Bottle tare weights (oz)
+const BW = {
+  "Stolichnaya":16,"Stolichnaya 1.14l":24.5,"Smirnoff 1.14l":21.5,"Smirnoff 750ml":15.7,
+  "Captain White - B22":14.8,"Captain White 1.14l":22.1,"Captain Spiced - B22 1.14L":21.8,
+  "Captain Spiced - B22 750ml":14.5,"Captain Dark - B22 1.14L":22,"Captain Dark - B22 750ml":14.4,
+  "Canadian Club - B22 1.14L":21.6,"Canadian Club - B22 750ml":14.8,"Dewars":11.9,
+  "Tanqueray":19.1,"Gordons":19.8,"Beefeater":16,"Absolut":17.7,"1800":25.6,
+  "Crown Royal - B26":19.9,"Grey Goose - B30":20.5,"Bombay (1.75L) (B32)":20.3,
+  "Bulleit":18.6,"Jim Beam":15.3,"Kraken":25.8,"Johnnie Black":13.2,"Glenfiddich":18.1,
+  "St. Remy - (B28)":25,"Jack Daniels":16,"Bulleit (Deluxe)":18.6,
+  "Baileys":19.8,"Blue Curacao - R21":16.8,"Kahlua - R29":18.4,"Malibu - B19":17.8,
+  "Jose 1.14l":24.5,"Jose - B24 750ml":17.8,"Triple Sec":23.1,"Cointreau":23.5
+};
+
+// Wine bottle sizes
+const WML = {
+  "House Red 750ml":750,"House W 750ml":750,"Barefoot PG 1.5l":1500,
+  "Woodbridge Merlot":750,"Alamos":750,"Yellow Tail PG":750,"Romeo Rose":750,"Marques":750
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let ACTIVE = {}; // sid -> Set<itemName>
+let DAT    = {}; // sid -> itemName -> {o,e}
+let EVT    = { date:"", group:"", bar:"", room:"" };
+let TICKET_TOTAL = 0;  // single total ticket count
+let TICKET_NOTES = "";
+let BAR_TYPE = "host"; // "host" or "cash"
+let CASH_RECON = { cash:0, visa:0, mastercard:0, amex:0, debit:0, roomCharge:0 };
+const TAX_RATE = 0.14;       // Nova Scotia HST 14%
+const GRATUITY_RATE = 0.18;  // 18% auto-grat service charge
+let activeId = "";
+
+// ─── SETUP SCREEN ─────────────────────────────────────────────────────────────
+let _setupBarType = "host";
+function setBarType(type) {
+  _setupBarType = type;
+  document.getElementById("opt-host").className = "bar-type-opt" + (type==="host" ? " active-host" : "");
+  document.getElementById("opt-cash").className = "bar-type-opt" + (type==="cash" ? " active-cash" : "");
+  document.getElementById("opt-both").className = "bar-type-opt" + (type==="both" ? " active-both" : "");
+}
+
+function buildSetup() {
+  document.getElementById("sDate").valueAsDate = new Date();
+  const body = document.getElementById("setupBody");
+  body.querySelectorAll(".setup-section").forEach(e => e.remove());
+  ALL_SECS.forEach(sec => {
+    const priceNote = sec.itemPrices
+      ? "varies per item"
+      : "$" + sec.price.toFixed(2);
+    const div = document.createElement("div");
+    div.className = "setup-section";
+    div.innerHTML = `
+      <div class="setup-section-head">
+        <span>${sec.label}</span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="price-tag">${priceNote}</span>
+          <span class="sel-all" onclick="toggleSection('${sec.id}',true)">All</span>
+          <span class="sel-all" onclick="toggleSection('${sec.id}',false)">None</span>
+        </div>
+      </div>
+      <div class="setup-items" id="si-${sec.id}">
+        ${sec.items.map(it => `
+          <label class="setup-item" data-sec="${sec.id}" data-item="${it}">
+            <input type="checkbox" checked data-sec="${sec.id}" data-item="${it}" onchange="updateSetupCount()">
+            <span>${it}</span>
+          </label>`).join("")}
+      </div>`;
+    body.appendChild(div);
+  });
+  updateSetupCount();
+}
+
+function toggleSection(sid, on) {
+  document.querySelectorAll(`input[data-sec="${sid}"]`).forEach(cb => {
+    cb.checked = on;
+    cb.closest(".setup-item").classList.toggle("checked", on);
+  });
+  updateSetupCount();
+}
+function checkAll()   { document.querySelectorAll(".setup-items input").forEach(cb => { cb.checked=true;  cb.closest(".setup-item").classList.add("checked");    }); updateSetupCount(); }
+function uncheckAll() { document.querySelectorAll(".setup-items input").forEach(cb => { cb.checked=false; cb.closest(".setup-item").classList.remove("checked"); }); updateSetupCount(); }
+function updateSetupCount() {
+  document.querySelectorAll(".setup-items input").forEach(cb => cb.closest(".setup-item").classList.toggle("checked",cb.checked));
+  const total   = document.querySelectorAll(".setup-items input").length;
+  const checked = document.querySelectorAll(".setup-items input:checked").length;
+  document.getElementById("setupCount").textContent = `${checked} of ${total} items selected`;
+}
+
+function startSheet() {
+  ACTIVE = {}; DAT = {};
+  ALL_SECS.forEach(sec => {
+    const selected = new Set();
+    document.querySelectorAll(`input[data-sec="${sec.id}"]`).forEach(cb => {
+      if (cb.checked) selected.add(cb.getAttribute("data-item"));
+    });
+    ACTIVE[sec.id] = selected;
+    DAT[sec.id] = {};
+    selected.forEach(it => { DAT[sec.id][it] = { o:"", a:"", e:"" }; });
+  });
+  BAR_TYPE = _setupBarType;
+  CASH_RECON = { cash:0, visa:0, mastercard:0, amex:0, debit:0, roomCharge:0 };
+  EVT = {
+    date:  document.getElementById("sDate").value,
+    group: document.getElementById("sGroup").value,
+    bar:   document.getElementById("sBar").value,
+    room:  document.getElementById("sRoom") ? document.getElementById("sRoom").value : ""
+  };
+  TICKET_TOTAL = 0; TICKET_NOTES = "";
+  // Clear any stale autosave when starting a new sheet
+  const _saves = getSaves(); delete _saves["__autosave__"]; setSaves(_saves);
+  document.getElementById("setupScreen").style.display = "none";
+  document.getElementById("appScreen").style.display = "block";
+  const badgeColor = BAR_TYPE==='host'?'#1a1815':BAR_TYPE==='cash'?'#2d7a4f':'#1e5fa8';
+  const badgeLabel = BAR_TYPE==='host'?'HOST BAR':BAR_TYPE==='cash'?'CASH BAR':'HOST + CASH';
+  document.getElementById("eventInfo").innerHTML =
+    [EVT.date,EVT.group,EVT.bar,EVT.room].filter(Boolean).join(" · ")
+    + ` <span style="margin-left:6px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${badgeColor};color:#fff;vertical-align:middle">${badgeLabel}</span>`;
+  buildSidebar(); buildPages(); buildMobileNav(); render();
+  const first = ALL_SECS.find(s => ACTIVE[s.id] && ACTIVE[s.id].size > 0);
+  if (first) goPage(first.id);
+}
+
+function backToSetup() {
+  if (!confirm("Go back to setup?\n\nYour current data will NOT be lost — it stays saved in memory. But if you start a new sheet it will be cleared.\n\nContinue?")) return;
+  document.getElementById("appScreen").style.display = "none";
+  document.getElementById("setupScreen").style.display = "flex";
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+const IC = {
+  s:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3l4 8 5-5-3 13H10L7 6z"/></svg>`,
+  w:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3h8l1 8a5 5 0 01-10 0L8 3zM12 16v5M8 21h8"/></svg>`,
+  b:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 11h1a3 3 0 010 6h-1M5 11h12v9a2 2 0 01-2 2H7a2 2 0 01-2-2v-9zM5 11V8a2 2 0 012-2h8a2 2 0 012 2v3"/></svg>`,
+  sum:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`,
+  tkt:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5H9a2 2 0 00-2 2v10a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2z"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="15" x2="12" y2="15"/></svg>`
+};
+const SEC_ICON = { liquor:"s",premLiq:"s",deluxeLiq:"s",liqueur:"s",hWine:"w",pWine:"w",domBeer:"b",impBeer:"b",coolers:"b",nonAlcBeer:"b",cocktail:"b",sparklingWater:"b",nonAlc:"b" };
+
+function buildSidebar() {
+  const sb = document.getElementById("sidebar");
+  sb.innerHTML = "";
+  const groups = [
+    { label:"Spirits",    secs:["liquor","premLiq","deluxeLiq","liqueur"] },
+    { label:"Wine",       secs:["hWine","pWine"] },
+    { label:"Beer & more",secs:["domBeer","impBeer","coolers","nonAlcBeer","cocktail","sparklingWater","nonAlc"] }
+  ];
+  groups.forEach(g => {
+    const vis = g.secs.filter(sid => ACTIVE[sid] && ACTIVE[sid].size > 0);
+    if (!vis.length) return;
+    const grp = document.createElement("div"); grp.className="sidebar-group";
+    grp.innerHTML = `<div class="sidebar-label">${g.label}</div>`;
+    vis.forEach(sid => {
+      const sec = ALL_SECS.find(s=>s.id===sid);
+      const el = document.createElement("div");
+      el.className="sidebar-item"; el.id="nav-"+sid;
+      el.innerHTML = IC[SEC_ICON[sid]||"b"] + sec.label;
+      el.onclick = () => goPage(sid);
+      grp.appendChild(el);
+    });
+    sb.appendChild(grp);
+  });
+  const sg = document.createElement("div"); sg.className="sidebar-group";
+  const ticketsLabel = BAR_TYPE==="cash" ? "Cash reconciliation" : BAR_TYPE==="both" ? "Tickets & cash" : "Host bar tickets";
+  sg.innerHTML = `<div class="sidebar-label">Overview</div>
+    <div class="sidebar-item" id="nav-tickets" onclick="goPage('tickets')">${IC.tkt} ${ticketsLabel}</div>
+    <div class="sidebar-item" id="nav-summary" onclick="goPage('summary')">${IC.sum} Summary</div>`;
+  sb.appendChild(sg);
+}
+
+// ─── PAGES ────────────────────────────────────────────────────────────────────
+function buildPages() {
+  const main = document.getElementById("mainContent"); main.innerHTML = "";
+  ALL_SECS.forEach(sec => {
+    if (!ACTIVE[sec.id] || ACTIVE[sec.id].size === 0) return;
+    const page = document.createElement("div");
+    page.className="page"; page.id="page-"+sec.id;
+    let sub="", thead="";
+    if (sec.type==="liquor") {
+      sub = "Enter total bottle weight in oz (liquor + bottle). Tare is subtracted automatically. Consumed oz rounds up to nearest whole number for Micros billing.";
+      thead = `<tr><th>Item</th><th>Tare oz</th><th>Opening wt</th><th>Ending wt</th><th>Open oz</th><th>Added oz</th><th>End oz</th><th>Consumed oz</th><th>Price</th><th>Sales $</th></tr>`;
+    } else if (sec.type==="wine") {
+      sub = "Enter bottles as decimals — 1=full, 1.25=one and a quarter. Converts to 5 oz glasses, rounded up to nearest whole glass for billing.";
+      thead = `<tr><th>Item</th><th>Size</th><th>Open btl</th><th>End btl</th><th>Open glasses</th><th>Added glasses</th><th>End glasses</th><th>Consumed glasses</th><th>Price</th><th>Sales $</th></tr>`;
+    } else {
+      sub = "Counted in bottles / units.";
+      thead = `<tr><th>Item</th><th>Opening</th><th>Added</th><th>Ending</th><th>Consumed</th><th>Price</th><th>Sales $</th></tr>`;
+    }
+    const priceLabel = sec.itemPrices ? "varies" : "$"+sec.price.toFixed(2);
+    page.innerHTML = `
+      <div class="page-title">${sec.label} <span style="font-size:12px;color:var(--green);font-family:'DM Mono',monospace;font-weight:500">${priceLabel}</span></div>
+      <div class="page-subtitle">${sub}</div>
+      <div class="card"><table>
+        <thead>${thead}</thead>
+        <tbody id="tb-${sec.id}"></tbody>
+      </table></div>
+      <div id="mc-${sec.id}" style="display:none"></div>`;
+    main.appendChild(page);
+  });
+  // Tickets page (host bar) OR Cash reconciliation page (cash bar)
+  const tp = document.createElement("div"); tp.className="page"; tp.id="page-tickets";
+  if (BAR_TYPE === "host") {
+    tp.innerHTML = `      <div class="page-title">Host bar tickets</div>
+      <div class="page-subtitle">Enter the total number of tickets received. This appears on the PDF receipt sent to the group.</div>
+      <div class="ticket-card" style="padding:1.5rem 1.75rem;max-width:480px">
+        <div style="display:flex;flex-direction:column;gap:1.25rem">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Total tickets received</div>
+            <input id="ticketTotal" class="num" type="number" min="0" step="1" placeholder="0"
+              style="width:160px;font-size:22px;padding:10px 14px;text-align:center"
+              onchange="setTotalTickets(this.value)" oninput="setTotalTickets(this.value)">
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Notes / remarks</div>
+            <textarea id="ticketNotes" placeholder="e.g. 45 tickets received at door, 3 returned unused…"
+              style="width:100%;height:80px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);resize:vertical;outline:none"
+              oninput="saveTicketNotes(this.value)"></textarea>
+          </div>
+        </div>
+      </div>`;
+  } else if (BAR_TYPE === "cash") {
+    tp.innerHTML = `
+      <div class="page-title">Cash reconciliation</div>
+      <div class="page-subtitle">Enter the cash and card payments collected. We'll compare against calculated sales from consumption to show your variance.</div>
+      <div class="recon-grid">
+        <div class="recon-card"><label>Cash</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-cash" oninput="setRecon('cash',this.value)"></div>
+        <div class="recon-card"><label>Visa</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-visa" oninput="setRecon('visa',this.value)"></div>
+        <div class="recon-card"><label>Mastercard</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-mastercard" oninput="setRecon('mastercard',this.value)"></div>
+        <div class="recon-card"><label>Amex</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-amex" oninput="setRecon('amex',this.value)"></div>
+        <div class="recon-card"><label>Debit</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-debit" oninput="setRecon('debit',this.value)"></div>
+        <div class="recon-card"><label>Room charge</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-roomCharge" oninput="setRecon('roomCharge',this.value)"></div>
+      </div>
+      <div class="variance-box zero" id="varianceBox">
+        <div>
+          <div class="vb-label">Variance (collected vs calculated)</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Total collected minus (consumption + 14% HST). Tips go to bartender.</div>
+        </div>
+        <div class="vb-val" id="varianceVal">$0.00</div>
+      </div>
+      <div class="ticket-card" style="max-width:600px">
+        <table>
+          <thead><tr><th style="text-align:left">Payment method</th><th>Amount</th></tr></thead>
+          <tbody id="tb-recon"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:1rem;max-width:600px">
+        <div class="ticket-card" style="padding:1rem">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Notes</div>
+          <textarea id="ticketNotes" placeholder="e.g. $20 short on cash, possible till error…"
+            style="width:100%;height:80px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);resize:vertical;outline:none"
+            oninput="saveTicketNotes(this.value)"></textarea>
+        </div>
+      </div>`;
+  } else {
+    // Both — show host tickets on top, cash recon below
+    tp.innerHTML = `
+            <div class="page-title">Host bar tickets</div>
+      <div class="page-subtitle">Enter the total number of tickets received. This appears on the PDF receipt sent to the group.</div>
+      <div class="ticket-card" style="padding:1.5rem 1.75rem;max-width:480px">
+        <div style="display:flex;flex-direction:column;gap:1.25rem">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Total tickets received</div>
+            <input id="ticketTotal" class="num" type="number" min="0" step="1" placeholder="0"
+              style="width:160px;font-size:22px;padding:10px 14px;text-align:center"
+              onchange="setTotalTickets(this.value)" oninput="setTotalTickets(this.value)">
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Notes / remarks</div>
+            <textarea id="ticketNotes" placeholder="e.g. 45 tickets received at door, 3 returned unused…"
+              style="width:100%;height:80px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);resize:vertical;outline:none"
+              oninput="saveTicketNotes(this.value)"></textarea>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:1.5rem 0"></div>
+            <div class="page-title" style="margin-top:1.5rem">Cash reconciliation</div>
+      <div class="page-subtitle">Enter payments collected at the cash bar. Compared against consumption to show variance.</div>
+      <div class="recon-grid">
+        <div class="recon-card"><label>Cash</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-cash" oninput="setRecon('cash',this.value)"></div>
+        <div class="recon-card"><label>Visa</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-visa" oninput="setRecon('visa',this.value)"></div>
+        <div class="recon-card"><label>Mastercard</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-mastercard" oninput="setRecon('mastercard',this.value)"></div>
+        <div class="recon-card"><label>Amex</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-amex" oninput="setRecon('amex',this.value)"></div>
+        <div class="recon-card"><label>Debit</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-debit" oninput="setRecon('debit',this.value)"></div>
+        <div class="recon-card"><label>Room charge</label><input type="number" step="0.01" min="0" placeholder="0.00" id="rc-roomCharge" oninput="setRecon('roomCharge',this.value)"></div>
+      </div>
+      <div class="variance-box zero" id="varianceBox">
+        <div>
+          <div class="vb-label">Variance (collected vs calculated)</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Total collected minus (consumption + 14% HST). Tips go to bartender.</div>
+        </div>
+        <div class="vb-val" id="varianceVal">$0.00</div>
+      </div>
+      <div class="ticket-card" style="max-width:600px">
+        <table>
+          <thead><tr><th style="text-align:left">Payment method</th><th>Amount</th></tr></thead>
+          <tbody id="tb-recon"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:1rem;max-width:600px">
+        <div class="ticket-card" style="padding:1rem">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Notes</div>
+          <textarea id="ticketNotes" placeholder="e.g. 45 host tickets received, cash bar $20 short…"
+            style="width:100%;height:80px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg);resize:vertical;outline:none"
+            oninput="saveTicketNotes(this.value)"></textarea>
+        </div>
+      </div>`;
+  }
+  main.appendChild(tp);
+
+  // Summary
+  const sp = document.createElement("div"); sp.className="page"; sp.id="page-summary";
+  sp.innerHTML = `
+    <div class="page-title">Summary</div>
+    <div class="page-subtitle">Totals and sales across all active categories.</div>
+    <div class="grand-total-box" id="grandTotalBox">
+      <div><div class="gt-label" id="grandTotalLabel">Total sales</div></div>
+      <div class="gt-val" id="grandTotalVal">$0.00</div>
+    </div>
+    <div class="sum-grid" id="sumGrid"></div>
+    <div class="ticket-card"><table>
+      <thead><tr><th>Category</th><th>Consumed</th><th>Unit</th><th>Price</th><th>Sales $</th></tr></thead>
+      <tbody id="tb-summary"></tbody>
+    </table></div>
+    <div class="ticket-card" style="max-width:420px;margin-top:0.5rem">
+      <table>
+        <tbody id="tb-totals"></tbody>
+      </table>
+    </div>`;
+  main.appendChild(sp);
+}
+
+function goPage(id) {
+  activeId = id;
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("show"));
+  const pg = document.getElementById("page-"+id); if(pg) pg.classList.add("show");
+  document.querySelectorAll(".sidebar-item").forEach(s=>s.classList.remove("active"));
+  const nav = document.getElementById("nav-"+id); if(nav) nav.classList.add("active");
+  // Update mobile bottom nav
+  document.querySelectorAll(".mobile-nav-tab").forEach(t=>t.classList.remove("active"));
+  const mnav = document.getElementById("mnav-"+id); if(mnav) mnav.classList.add("active");
+  // Scroll mobile nav tab into view
+  if(mnav) mnav.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+}
+
+function buildMobileNav() {
+  const inner = document.getElementById("mobileNavInner");
+  if (!inner) return;
+  const navSecs = ALL_SECS.filter(s=>ACTIVE[s.id]&&ACTIVE[s.id].size>0);
+  const allNavItems = [
+    ...navSecs.map(s=>({id:s.id, label:s.label})),
+    {id:"tickets", label: BAR_TYPE==="cash"?"Recon":BAR_TYPE==="both"?"Tickets":"Tickets"},
+    {id:"summary", label:"Summary"}
+  ];
+  inner.innerHTML = allNavItems.map(item=>`
+    <div class="mobile-nav-tab" id="mnav-${item.id}" onclick="goPage('${item.id}')">
+      <span>${item.label}</span>
+    </div>`).join("");
+}
+
+function openMobileMenu() { document.getElementById("mobileMenu").classList.add("open"); }
+function closeMobileMenu(e) {
+  if (!e || e.target === document.getElementById("mobileMenu"))
+    document.getElementById("mobileMenu").classList.remove("open");
+}
+
+// Mobile card builders
+function isMobile() {
+  // Use matchMedia — reliable across iframes and different rendering contexts
+  return window.matchMedia("(max-width: 768px)").matches ||
+         window.matchMedia("(pointer: coarse) and (max-width: 1024px)").matches;
+}
+
+function buildMobileLiquorCards(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid);
+  const rows = calcLiquorCons(sec);
+  let totCons=0, totSales=0;
+  const cards = rows.map(r=>{
+    if(r.cons!==null){totCons+=r.cons; if(r.sales!==null)totSales+=r.sales;}
+    const bw = BW[r.it]!==undefined?BW[r.it]:"?";
+    const se=sid.replace(/'/g,"\'"), ie=r.it.replace(/'/g,"\'");
+    const uid=`m_liq_${se}_${ie}`;
+    const endGtOpen = r.d.e && parseFloat(r.d.e)>0 && netOz(r.it,r.d.e)>(r.openOz||0)+(r.addOz||0)+0.1;
+    const warn = endGtOpen?`<span class="warn-badge">⚠ end &gt; open+added</span>`:"";
+    const addLabel = r.d.a ? Math.round(r.addOz) : "+";
+    const addHas   = r.d.a ? "has-value" : "";
+    return `<div class="item-card${endGtOpen?' warn-row':''}">
+      <div class="item-card-header">
+        <div>
+          <div class="item-card-name">${r.it}${warn}</div>
+          <div class="item-card-tare">Tare: ${bw} oz</div>
+        </div>
+        <div class="item-card-sales" style="${r.sales===null?'visibility:hidden':''}">${r.sales!==null?fmt$(r.sales):"—"}</div>
+      </div>
+      <div class="item-card-fields">
+        <div class="item-card-field">
+          <label>Opening wt (oz)</label>
+          <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)">
+        </div>
+        <div class="item-card-field">
+          <label>Ending wt (oz)</label>
+          <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)">
+        </div>
+      </div>
+      <div class="item-card-calc">
+        ${r.openOz!==null?`<span class="calc-chip">Open: ${Math.round(r.openOz)} oz</span>`:""}
+        ${r.addOz?`<span class="calc-chip add">+${Math.round(r.addOz)} oz</span>`:""}
+        ${r.endOz!==null?`<span class="calc-chip">End: ${Math.round(r.endOz)} oz</span>`:""}
+        ${r.cons!==null?`<span class="calc-chip cons">${r.cons} oz → ${fmt$(r.pr)}</span>`:""}
+      </div>
+      <button class="mobile-add-btn ${addHas}" onclick="toggleAddRow('${uid}')">${r.d.a?Math.round(r.addOz):"+"}</button>
+      <div class="mobile-add-wrap" id="${uid}">
+        <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="oz" value="${r.d.a}" onchange="set('${se}','${ie}','a',this.value)">
+        <button class="add-confirm" onclick="confirmAdd('${uid}')">✓</button>
+        <button class="add-cancel" onclick="cancelAdd('${uid}')">✕</button>
+      </div>
+    </div>`;
+  }).join("");
+  return cards
+    + `<div class="card-total-row"><span class="ct-label">Total consumed</span><span class="ct-val cons">${Math.round(totCons)} oz</span></div>`
+    + `<div class="card-total-row"><span class="ct-label">Total sales</span><span class="ct-val sales">${fmt$(totSales)}</span></div>`;
+}
+
+function buildMobileWineCards(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid);
+  const rows = calcWineCons(sec);
+  let totCons=0, totSales=0;
+  const cards = rows.map(r=>{
+    if(r.cons!==null){totCons+=r.cons; if(r.sales!==null)totSales+=r.sales;}
+    const se=sid.replace(/'/g,"\'"), ie=r.it.replace(/'/g,"\'");
+    const uid=`m_wine_${se}_${ie}`;
+    const addHas = r.d.a?"has-value":"";
+    return `<div class="item-card">
+      <div class="item-card-header">
+        <div>
+          <div class="item-card-name">${r.it}</div>
+          <div class="item-card-tare">${r.ml}ml · 5oz/glass · 150ml/glass</div>
+        </div>
+        <div class="item-card-sales" style="${r.sales===null?'visibility:hidden':''}">${r.sales!==null?fmt$(r.sales):"—"}</div>
+      </div>
+      <div class="item-card-fields">
+        <div class="item-card-field">
+          <label>Opening (bottles)</label>
+          <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)">
+        </div>
+        <div class="item-card-field">
+          <label>Ending (bottles)</label>
+          <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)">
+        </div>
+      </div>
+      <div class="item-card-calc">
+        ${r.openG!==null?`<span class="calc-chip">Open: ${r.openG.toFixed(1)} gl</span>`:""}
+        ${r.addG?`<span class="calc-chip add">+${r.addG.toFixed(1)} gl</span>`:""}
+        ${r.endG!==null?`<span class="calc-chip">End: ${r.endG.toFixed(1)} gl</span>`:""}
+        ${r.cons!==null?`<span class="calc-chip cons">${r.cons} glasses → ${fmt$(r.pr)}</span>`:""}
+      </div>
+      <button class="mobile-add-btn ${addHas}" onclick="toggleAddRow('${uid}')">${r.d.a?r.addG.toFixed(1):"+"}</button>
+      <div class="mobile-add-wrap" id="${uid}">
+        <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="bottles" value="${r.d.a}" onchange="set('${se}','${ie}','a',this.value)">
+        <button class="add-confirm" onclick="confirmAdd('${uid}')">✓</button>
+        <button class="add-cancel" onclick="cancelAdd('${uid}')">✕</button>
+      </div>
+    </div>`;
+  }).join("");
+  return cards
+    + `<div class="card-total-row"><span class="ct-label">Total consumed</span><span class="ct-val cons">${Math.round(totCons)} glasses</span></div>`
+    + `<div class="card-total-row"><span class="ct-label">Total sales</span><span class="ct-val sales">${fmt$(totSales)}</span></div>`;
+}
+
+function buildMobileBeerCards(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid);
+  const rows = calcBeerCons(sec);
+  let totCons=0, totSales=0;
+  const cards = rows.map(r=>{
+    if(r.cons!==null){totCons+=r.cons; if(r.sales!==null)totSales+=r.sales;}
+    const se=sid.replace(/'/g,"\'"), ie=r.it.replace(/'/g,"\'");
+    const uid=`m_beer_${se}_${ie}`;
+    const aB=parseFloat(r.d.a)||0;
+    const endGtOpenB = r.d.e && (parseFloat(r.d.e)||0) > (parseFloat(r.d.o)||0)+aB;
+    const warn = endGtOpenB?`<span class="warn-badge">⚠ end &gt; open+added</span>`:"";
+    const addHas=aB?"has-value":"";
+    return `<div class="item-card${endGtOpenB?' warn-row':''}">
+      <div class="item-card-header">
+        <div><div class="item-card-name">${r.it}${warn}</div></div>
+        <div class="item-card-sales" style="${r.sales===null?'visibility:hidden':''}">${r.sales!==null?fmt$(r.sales):"—"}</div>
+      </div>
+      <div class="item-card-fields">
+        <div class="item-card-field">
+          <label>Opening (btl)</label>
+          <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)">
+        </div>
+        <div class="item-card-field">
+          <label>Ending (btl)</label>
+          <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)">
+        </div>
+      </div>
+      <div class="item-card-calc">
+        ${aB?`<span class="calc-chip add">+${aB} btl added</span>`:""}
+        ${r.cons!==null?`<span class="calc-chip cons">${r.cons} btl → ${fmt$(r.pr)}</span>`:""}
+      </div>
+      <button class="mobile-add-btn ${addHas}" onclick="toggleAddRow('${uid}')">${aB?aB:"+"}</button>
+      <div class="mobile-add-wrap" id="${uid}">
+        <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="bottles" value="${r.d.a}" onchange="set('${se}','${ie}','a',this.value)">
+        <button class="add-confirm" onclick="confirmAdd('${uid}')">✓</button>
+        <button class="add-cancel" onclick="cancelAdd('${uid}')">✕</button>
+      </div>
+    </div>`;
+  }).join("");
+  return cards
+    + `<div class="card-total-row"><span class="ct-label">Total consumed</span><span class="ct-val cons">${Math.round(totCons)}</span></div>`
+    + `<div class="card-total-row"><span class="ct-label">Total sales</span><span class="ct-val sales">${fmt$(totSales)}</span></div>`;
+}
+
+// ─── CALCULATIONS ─────────────────────────────────────────────────────────────
+function netOz(item,w){ const v=parseFloat(w); if(isNaN(v)||v===0)return 0; return Math.max(0,v-(BW[item]||0)); }
+function wineGlasses(item,b){ return (parseFloat(b)||0)*((WML[item]||750)/150); } // 150ml per 5oz glass (industry standard)
+function itemPrice(sec,item){ return (sec.itemPrices && sec.itemPrices[item]) ? sec.itemPrices[item] : sec.price; }
+function fmt$(v){ return "$"+v.toFixed(2); }
+
+function calcLiquorCons(sec) {
+  // returns array of {item,openOz,endOz,cons,price,sales}
+  // cons is rounded UP to nearest whole oz — no decimals allowed on Micros billing
+  return [...(ACTIVE[sec.id]||[])].map(it => {
+    const d = DAT[sec.id][it]||{o:"",e:""};
+    const openOz = d.o ? netOz(it,d.o) : null;
+    const addOz  = d.a ? netOz(it,d.a)  : 0;   // added mid-banquet (full bottle weight)
+    const endOz  = d.e ? netOz(it,d.e)  : null;
+    const hasData = openOz!==null && endOz!==null;
+    const consRaw = hasData ? Math.max(0, openOz + addOz - endOz) : null;
+    const cons    = consRaw!==null ? Math.ceil(consRaw) : null; // round UP — Micros needs whole numbers
+    const pr      = itemPrice(sec,it);
+    const sales   = cons!==null ? cons * pr : null;
+    return {it, d, openOz, addOz, endOz, cons, pr, sales};
+  });
+}
+function calcWineCons(sec) {
+  return [...(ACTIVE[sec.id]||[])].map(it => {
+    const d = DAT[sec.id][it]||{o:"",e:""};
+    const ml = WML[it]||750;
+    const openG  = d.o ? wineGlasses(it,d.o) : null;
+    const addG   = d.a ? wineGlasses(it,d.a)  : 0;  // added mid-banquet
+    const endG   = d.e ? wineGlasses(it,d.e)  : null;
+    const hasData = openG!==null && endG!==null;
+    const consRaw = hasData ? Math.max(0, openG + addG - endG) : null;
+    const cons    = consRaw!==null ? Math.ceil(consRaw) : null; // round UP — matches Micros billing
+    const pr      = itemPrice(sec,it);
+    const sales   = cons!==null ? cons * pr : null;
+    return {it, d, ml, openG, addG, endG, cons, pr, sales};
+  });
+}
+function calcBeerCons(sec) {
+  return [...(ACTIVE[sec.id]||[])].map(it => {
+    const d = DAT[sec.id][it]||{o:"",e:""};
+    const o = parseFloat(d.o)||0;
+    const a = parseFloat(d.a)||0;  // added mid-banquet
+    const e = parseFloat(d.e)||0;
+    const cons = (d.o||d.e) ? Math.max(0, o + a - e) : null;
+    const pr   = itemPrice(sec,it);
+    const sales= cons!==null ? cons*pr : null;
+    return {it,d,cons,pr,sales};
+  });
+}
+
+function getSecTotalSales(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid); if(!sec) return 0;
+  let tot=0;
+  if(sec.type==="liquor") calcLiquorCons(sec).forEach(r=>{ if(r.sales!==null) tot+=r.sales; });
+  else if(sec.type==="wine") calcWineCons(sec).forEach(r=>{ if(r.sales!==null) tot+=r.sales; });
+  else calcBeerCons(sec).forEach(r=>{ if(r.sales!==null) tot+=r.sales; });
+  return tot;
+}
+function getSecTotalCons(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid); if(!sec) return 0;
+  let tot=0;
+  if(sec.type==="liquor") calcLiquorCons(sec).forEach(r=>{ if(r.cons!==null) tot+=r.cons; });
+  else if(sec.type==="wine") calcWineCons(sec).forEach(r=>{ if(r.cons!==null) tot+=r.cons; });
+  else calcBeerCons(sec).forEach(r=>{ if(r.cons!==null) tot+=r.cons; });
+  return tot;
+}
+
+function buildLiquorRows(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid);
+  const rows = calcLiquorCons(sec);
+  let totCons=0, totSales=0;
+  const html = rows.map(r=>{
+    if(r.cons!==null){totCons+=r.cons; if(r.sales!==null)totSales+=r.sales;}
+    const bw = BW[r.it]!==undefined?BW[r.it]:"?";
+    const se=sid.replace(/'/g,"\\'"), ie=r.it.replace(/'/g,"\\'");
+    const endGtOpen = r.d.e && parseFloat(r.d.e) > 0 && netOz(r.it, r.d.e) > (r.openOz||0) + (r.addOz||0) + 0.1;
+    const warnBadge = endGtOpen ? `<span class="warn-badge">⚠ end &gt; open+added</span>` : "";
+    const addLabel = r.d.a ? Math.round(r.addOz) : "+";
+    const addHas   = r.d.a ? "has-value" : "";
+    const uid = `${se}_${ie}`;
+    return `<tr class="${endGtOpen?'warn-row':''}">
+      <td>
+        <div class="item-name">${r.it}${warnBadge}</div>
+        <div class="item-sub">Tare: ${bw} oz</div>
+        <button class="add-btn ${addHas}" onclick="toggleAddRow('liq_${uid}')">${addLabel}</button>
+        <div class="add-input-wrap" id="liq_${uid}">
+          <input class="num" type="number" step="0.1" min="0" placeholder="oz" value="${r.d.a}"
+            onchange="set('${se}','${ie}','a',this.value)" id="liq_inp_${uid}">
+          <button class="add-confirm" onclick="confirmAdd('liq_${uid}')">✓</button>
+          <button class="add-cancel" onclick="cancelAdd('liq_${uid}','${se}','${ie}')">✕</button>
+        </div>
+      </td>
+      <td class="tare-val">${bw}</td>
+      <td><input class="num" type="number" step="0.1" min="0" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)"></td>
+      <td><input class="num" type="number" step="0.1" min="0" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)"></td>
+      <td class="calc-val">${r.openOz!==null?Math.round(r.openOz):"—"}</td>
+      <td class="calc-val" style="color:var(--green);font-weight:600">${r.addOz?"+"+Math.round(r.addOz):""}</td>
+      <td class="calc-val">${r.endOz!==null?Math.round(r.endOz):"—"}</td>
+      <td class="cons-val">${r.cons!==null?Math.round(r.cons):"—"}</td>
+      <td class="price-val">${fmt$(r.pr)}</td>
+      <td class="sales-val">${r.sales!==null?fmt$(r.sales):"—"}</td>
+    </tr>`;
+  }).join("");
+  return html
+    + `<tr class="tot-row"><td colspan="7">Total consumed</td><td class="cons-val">${Math.round(totCons)} oz</td><td></td><td></td></tr>`
+    + `<tr class="sales-row"><td colspan="9">Total sales</td><td class="tot-sales">${fmt$(totSales)}</td></tr>`;
+}
+
+function buildWineRows(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid);
+  const rows = calcWineCons(sec);
+  let totCons=0, totSales=0;
+  const html = rows.map(r=>{
+    if(r.cons!==null){totCons+=r.cons; if(r.sales!==null)totSales+=r.sales;}
+    const se=sid.replace(/'/g,"\\'"), ie=r.it.replace(/'/g,"\\'");
+    const endGtOpenW = r.d.e && r.openG!==null && wineGlasses(r.it,r.d.e) > (r.openG||0) + (r.addG||0) + 0.1;
+    const warnW = endGtOpenW ? `<span class="warn-badge">⚠ end &gt; open+added</span>` : "";
+    const addLabelW = r.d.a ? r.addG.toFixed(1) : "+";
+    const addHasW   = r.d.a ? "has-value" : "";
+    const uidW = `${se}_${ie}`;
+    return `<tr class="${endGtOpenW?'warn-row':''}">
+      <td>
+        <div class="item-name">${r.it}${warnW}</div>
+        <button class="add-btn ${addHasW}" onclick="toggleAddRow('wine_${uidW}')">${addLabelW}</button>
+        <div class="add-input-wrap" id="wine_${uidW}">
+          <input class="num" type="number" step="0.05" min="0" placeholder="bottles" value="${r.d.a}"
+            onchange="set('${se}','${ie}','a',this.value)" id="wine_inp_${uidW}">
+          <button class="add-confirm" onclick="confirmAdd('wine_${uidW}')">✓</button>
+          <button class="add-cancel" onclick="cancelAdd('wine_${uidW}')">✕</button>
+        </div>
+      </td>
+      <td class="tare-val">${r.ml}ml</td>
+      <td><input class="num" type="number" step="0.05" min="0" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)"></td>
+      <td><input class="num" type="number" step="0.05" min="0" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)"></td>
+      <td class="calc-val">${r.openG!==null?r.openG.toFixed(1):"—"}</td>
+      <td class="calc-val" style="color:var(--green);font-weight:600">${r.addG?"+"+r.addG.toFixed(1):""}</td>
+      <td class="calc-val">${r.endG!==null?r.endG.toFixed(1):"—"}</td>
+      <td class="cons-val">${r.cons!==null?r.cons:"—"}</td>
+      <td class="price-val">${fmt$(r.pr)}</td>
+      <td class="sales-val">${r.sales!==null?fmt$(r.sales):"—"}</td>
+    </tr>`;
+  }).join("");
+  return html
+    + `<tr class="tot-row"><td colspan="7">Total consumed</td><td class="cons-val">${Math.round(totCons)} glasses</td><td></td><td></td></tr>`
+    + `<tr class="sales-row"><td colspan="9">Total sales</td><td class="tot-sales">${fmt$(totSales)}</td></tr>`;
+}
+
+function buildBeerRows(sid) {
+  const sec = ALL_SECS.find(s=>s.id===sid);
+  const rows = calcBeerCons(sec);
+  let totCons=0, totSales=0;
+  const html = rows.map(r=>{
+    if(r.cons!==null){totCons+=r.cons; if(r.sales!==null)totSales+=r.sales;}
+    const se=sid.replace(/'/g,"\\'"), ie=r.it.replace(/'/g,"\\'");
+    const oB = parseFloat(r.d.o)||0, aB = parseFloat(r.d.a)||0, eB = parseFloat(r.d.e)||0;
+    const endGtOpenB = r.d.e && eB > oB + aB;
+    const warnB = endGtOpenB ? `<span class="warn-badge">⚠ end &gt; open+added</span>` : "";
+    const addLabelB = r.d.a ? aB : "+";
+    const addHasB   = r.d.a ? "has-value" : "";
+    const uidB = `${se}_${ie}`;
+    return `<tr class="${endGtOpenB?'warn-row':''}">
+      <td>
+        <div class="item-name">${r.it}${warnB}</div>
+        <button class="add-btn ${addHasB}" onclick="toggleAddRow('beer_${uidB}')">${addLabelB}</button>
+        <div class="add-input-wrap" id="beer_${uidB}">
+          <input class="num" type="number" step="1" min="0" placeholder="bottles" value="${r.d.a}"
+            onchange="set('${se}','${ie}','a',this.value)" id="beer_inp_${uidB}">
+          <button class="add-confirm" onclick="confirmAdd('beer_${uidB}')">✓</button>
+          <button class="add-cancel" onclick="cancelAdd('beer_${uidB}')">✕</button>
+        </div>
+      </td>
+      <td><input class="num" type="number" step="1" min="0" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)"></td>
+      <td class="calc-val" style="color:var(--green);font-weight:600">${aB?"+"+aB:""}</td>
+      <td><input class="num" type="number" step="1" min="0" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)"></td>
+      <td class="cons-val">${r.cons!==null?Math.round(r.cons):"—"}</td>
+      <td class="price-val">${fmt$(r.pr)}</td>
+      <td class="sales-val">${r.sales!==null?fmt$(r.sales):"—"}</td>
+    </tr>`;
+  }).join("");
+  return html
+    + `<tr class="tot-row"><td colspan="4">Total consumed</td><td class="cons-val">${Math.round(totCons)}</td><td></td><td></td></tr>`
+    + `<tr class="sales-row"><td colspan="6">Total sales</td><td class="tot-sales">${fmt$(totSales)}</td></tr>`;
+}
+
+function renderTickets() {
+  const inp = document.getElementById("ticketTotal");
+  if(inp && inp !== document.activeElement) inp.value = TICKET_TOTAL || "";
+  const tn = document.getElementById("ticketNotes");
+  if(tn && tn !== document.activeElement) tn.value = TICKET_NOTES;
+  // Trigger recon render for cash and both modes
+  if (BAR_TYPE === "cash" || BAR_TYPE === "both") renderRecon();
+}
+
+function renderRecon() {
+  // Restore inputs
+  Object.keys(CASH_RECON).forEach(k => {
+    const el = document.getElementById("rc-"+k);
+    if(el && el !== document.activeElement) el.value = CASH_RECON[k] || "";
+  });
+  const collected  = Object.values(CASH_RECON).reduce((a,v)=>a+(parseFloat(v)||0),0);
+  const activeSecs = ALL_SECS.filter(s=>ACTIVE[s.id]&&ACTIVE[s.id].size>0);
+  const consumption = activeSecs.reduce((a,s)=>a+getSecTotalSales(s.id),0);
+  // Cash bar: variance vs consumption + 14% tax (no grat — tips go to bartender)
+  const taxOnly    = consumption * TAX_RATE;
+  const expected   = consumption + taxOnly;
+  const variance   = collected - expected;
+
+  const vBox = document.getElementById("varianceBox");
+  const vVal = document.getElementById("varianceVal");
+  if(vBox && vVal){
+    vVal.textContent = (variance>=0?"+":"") + fmt$(variance);
+    vBox.className = "variance-box " + (Math.abs(variance)<0.01?"zero":variance>0?"over":"short");
+  }
+  const labels = {cash:"Cash",visa:"Visa",mastercard:"Mastercard",amex:"Amex",debit:"Debit",roomCharge:"Room charge"};
+  const tb = document.getElementById("tb-recon");
+  if(tb){
+    tb.innerHTML = Object.keys(CASH_RECON).map(k=>{
+      const v = parseFloat(CASH_RECON[k])||0;
+      return `<tr><td>${labels[k]}</td><td class="calc-val">${v?fmt$(v):"—"}</td></tr>`;
+    }).join("")
+    + `<tr class="tot-row"><td>Total collected</td><td class="tot-sales">${fmt$(collected)}</td></tr>`
+    + `<tr><td style="color:var(--text2)">Consumption + HST (14%)</td><td class="calc-val">${fmt$(expected)}</td></tr>`
+    + `<tr class="sales-row"><td>Variance</td><td class="${variance>=0?'tot-sales':'cons-val'}">${(variance>=0?"+":"")+fmt$(variance)}</td></tr>`;
+  }
+}
+
+function setRecon(key, val) { CASH_RECON[key] = parseFloat(val)||0; renderRecon(); render(); }
+function setTotalTickets(val) { TICKET_TOTAL = parseInt(val)||0; }
+function saveTicketNotes(val) { TICKET_NOTES = val; }
+
+function render() {
+  ALL_SECS.forEach(sec => {
+    const tb = document.getElementById("tb-"+sec.id);
+    const mc = document.getElementById("mc-"+sec.id);
+    const cardEl = tb ? tb.closest(".card") : null;
+
+    // Only render sections that have active items
+    const hasItems = ACTIVE[sec.id] && ACTIVE[sec.id].size > 0;
+    if (!hasItems) return;
+
+    if (tb) {
+      if(sec.type==="liquor")    tb.innerHTML = buildLiquorRows(sec.id);
+      else if(sec.type==="wine") tb.innerHTML = buildWineRows(sec.id);
+      else                        tb.innerHTML = buildBeerRows(sec.id);
+    }
+    if (mc) {
+      if(sec.type==="liquor")    mc.innerHTML = buildMobileLiquorCards(sec.id);
+      else if(sec.type==="wine") mc.innerHTML = buildMobileWineCards(sec.id);
+      else                        mc.innerHTML = buildMobileBeerCards(sec.id);
+    }
+  });
+  renderTickets();
+  const activeSecs = ALL_SECS.filter(s=>ACTIVE[s.id]&&ACTIVE[s.id].size>0);
+  const grandTotal = activeSecs.reduce((a,s)=>a+getSecTotalSales(s.id),0);
+  const gv = document.getElementById("grandTotalVal");
+  const gl = document.getElementById("grandTotalLabel");
+  if(gv) {
+    const collected = Object.values(CASH_RECON).reduce((a,v)=>a+(parseFloat(v)||0),0);
+    if (BAR_TYPE === "cash") {
+      // Cash bar: tips to bartender, no auto-grat — show consumption + tax only
+      const cashTaxOnly  = grandTotal * TAX_RATE;
+      const cashExpected = grandTotal + cashTaxOnly;
+      if(gv) gv.textContent = fmt$(cashExpected);
+      if(gl) gl.textContent = "Expected from guests (consumption + 14% tax)";
+    } else {
+      // Host or Both: apply grat+tax only on the host-owed portion
+      const hostBase   = BAR_TYPE === "both" ? Math.max(0, grandTotal - collected) : grandTotal;
+      const cashCoversAll = BAR_TYPE === "both" && collected > grandTotal;
+      const grat       = hostBase * GRATUITY_RATE;
+      const tax        = hostBase * TAX_RATE;  // tax on subtotal only — matches Micros
+      const finalTotal = hostBase + grat + tax;
+      if(gv) gv.textContent = cashCoversAll ? "$0.00" : fmt$(finalTotal);
+      if(gl) gl.textContent = cashCoversAll ? "Host owes nothing — cash bar covers all"
+                            : BAR_TYPE === "both" ? "Host total owing (incl. grat + tax)"
+                                                   : "Total owing (incl. grat + tax)";
+    }
+  }
+  const sg = document.getElementById("sumGrid");
+  if(sg) sg.innerHTML = activeSecs.map(s=>`
+    <div class="sum-card">
+      <div class="sc-label">${s.label}</div>
+      <div class="sc-val">${Math.round(getSecTotalCons(s.id))}</div>
+      <div class="sc-unit">${s.unit}</div>
+      <div class="sc-sales">${fmt$(getSecTotalSales(s.id))}</div>
+    </div>`).join("");
+  const ts = document.getElementById("tb-summary");
+  const tt = document.getElementById("tb-totals");
+  if(ts) {
+    const collected = Object.values(CASH_RECON).reduce((a,v)=>a+(parseFloat(v)||0),0);
+    const hostOwes  = Math.max(0, grandTotal - collected); // floor at 0 — cash can't make host negative
+    let rows = activeSecs.map(s=>{
+      const prLabel = s.itemPrices ? "varies" : fmt$(s.price);
+      return `<tr><td>${s.label}</td><td class="cons-val">${Math.round(getSecTotalCons(s.id))}</td><td class="tare-val">${s.unit}</td><td class="price-val">${prLabel}</td><td class="tot-sales">${fmt$(getSecTotalSales(s.id))}</td></tr>`;
+    }).join("");
+    rows += `<tr class="sales-row"><td colspan="4">Subtotal</td><td class="tot-sales">${fmt$(grandTotal)}</td></tr>`;
+    if (BAR_TYPE === "both") {
+      // Only show cash deduction in both mode — makes no sense on a pure cash bar summary
+      rows += `<tr style="background:var(--surface2)"><td colspan="4" style="color:var(--text2)">Cash bar collected</td><td style="color:var(--text2);font-family:'DM Mono',monospace;font-size:11.5px;font-weight:600;text-align:right">− ${fmt$(collected)}</td></tr>`;
+      rows += `<tr style="background:#1a1815"><td colspan="4" style="color:#fff;font-weight:700">Host subtotal</td><td style="color:#4ade80;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;text-align:right">${fmt$(Math.max(0,hostOwes))}</td></tr>`;
+    }
+    ts.innerHTML = rows;
+  }
+  // ── Tax + Gratuity breakdown table ──
+  if(tt) {
+    const collected = Object.values(CASH_RECON).reduce((a,v)=>a+(parseFloat(v)||0),0);
+
+    if (BAR_TYPE === "cash") {
+      // Cash bar: tips go to bartender — no auto-grat shown. Tax only.
+      const cashTaxOnly   = grandTotal * TAX_RATE;
+      const cashExpected  = grandTotal + cashTaxOnly;
+      const cashVariance  = collected - cashExpected;
+      tt.innerHTML = `
+        <tr><td style="color:var(--text2);font-size:12px">Consumption value (pre-tax)</td><td class="calc-val">${fmt$(grandTotal)}</td></tr>
+        <tr><td style="color:var(--text2);font-size:12px">HST / Tax (14%)</td><td class="calc-val">${fmt$(cashTaxOnly)}</td></tr>
+        <tr style="background:var(--surface2)"><td style="color:var(--text2);font-size:12px;padding:9px 10px">Expected total from guests</td><td class="calc-val" style="padding:9px 10px">${fmt$(cashExpected)}</td></tr>
+        <tr style="background:var(--surface2)"><td style="color:var(--text2);font-size:12px;padding:9px 10px">Total collected</td><td class="calc-val" style="padding:9px 10px">${fmt$(collected)}</td></tr>
+        <tr style="background:#1a1815"><td style="color:#fff;font-weight:700;font-size:13px;padding:9px 10px">Variance (collected vs expected)</td><td style="color:${cashVariance>=0?'#4ade80':'#f87171'};font-family:'DM Mono',monospace;font-size:14px;font-weight:700;text-align:right;padding:9px 10px">${(cashVariance>=0?"+":"") + fmt$(cashVariance)}</td></tr>`;
+    } else {
+      // Host or Both: apply grat+tax only on host-owed portion
+      const hostBase   = BAR_TYPE === "both" ? Math.max(0, grandTotal - collected) : grandTotal;
+      const grat       = hostBase * GRATUITY_RATE;
+      const tax        = hostBase * TAX_RATE;  // tax on subtotal only — matches Micros
+      const finalTotal = hostBase + grat + tax;
+      const baseLabel  = BAR_TYPE === "both" ? "Host subtotal (after cash deducted)" : "Subtotal";
+      let rows = "";
+      if (BAR_TYPE === "both") {
+        rows += `<tr><td style="color:var(--text2);font-size:12px">Total consumption</td><td class="calc-val">${fmt$(grandTotal)}</td></tr>`;
+        rows += `<tr><td style="color:var(--text2);font-size:12px">Less: cash bar collected</td><td class="calc-val">− ${fmt$(collected)}</td></tr>`;
+      }
+      rows += `
+        <tr><td style="color:var(--text2);font-size:12px">${baseLabel}</td><td class="calc-val">${fmt$(hostBase)}</td></tr>
+        <tr><td style="color:var(--text2);font-size:12px">Auto-gratuity (18%)</td><td class="calc-val">${fmt$(grat)}</td></tr>
+        <tr><td style="color:var(--text2);font-size:12px">HST / Tax (14%)</td><td class="calc-val">${fmt$(tax)}</td></tr>
+        <tr style="background:#1a1815"><td style="color:#fff;font-weight:700;font-size:13px;padding:9px 10px">Total owing</td><td style="color:#4ade80;font-family:'DM Mono',monospace;font-size:14px;font-weight:700;text-align:right;padding:9px 10px">${fmt$(finalTotal)}</td></tr>`;
+      tt.innerHTML = rows;
+    }
+  }
+}
+
+function set(sid,it,field,val){ if(DAT[sid]&&DAT[sid][it]) DAT[sid][it][field]=val; render(); }
+
+function toggleAddRow(uid) {
+  const wrap = document.getElementById(uid);
+  if (!wrap) return;
+  const isOpen = wrap.classList.contains('open');
+  // Close all open add rows (both desktop and mobile)
+  document.querySelectorAll('.add-input-wrap.open, .mobile-add-wrap.open').forEach(w => w.classList.remove('open'));
+  if (!isOpen) {
+    wrap.classList.add('open');
+    const inp = wrap.querySelector('input');
+    if (inp) setTimeout(() => { inp.focus(); inp.select(); }, 80);
+  }
+}
+
+function confirmAdd(uid) {
+  const wrap = document.getElementById(uid);
+  if (wrap) wrap.classList.remove('open');
+  render();
+}
+
+function cancelAdd(uid) {
+  const wrap = document.getElementById(uid);
+  if (wrap) wrap.classList.remove('open');
+}
+
+// ─── PDF ──────────────────────────────────────────────────────────────────────
+function downloadPDF() {
+  document.getElementById("pdfOverlay").classList.add("open");
+  setTimeout(()=>{
+    try {
+      const {jsPDF} = window.jspdf;
+      // Landscape for detail pages — 10 columns need the width
+      const doc = new jsPDF({orientation:"landscape", unit:"pt", format:"letter"});
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const ML = 14, MR = 14;
+      const HEADER_H = 26;
+      const MIN_SPACE = 55;
+
+      const meta = [EVT.date, EVT.group, EVT.bar, EVT.room].filter(Boolean).join("  ·  ");
+
+      function drawBanner() {
+        doc.setFillColor(26,24,21);
+        doc.rect(0, 0, pageW, HEADER_H, "F");
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(9); doc.setFont("helvetica","bold");
+        doc.text("Banquet Consumption Sheet", ML, 17);
+        doc.setFontSize(7); doc.setFont("helvetica","normal");
+        doc.text(meta, pageW - MR, 17, {align:"right"});
+        doc.setTextColor(26,24,21);
+      }
+
+      let curY = 0;
+      let onFirstPage = true;
+
+      function ensureSpace(needed) {
+        if (onFirstPage) {
+          drawBanner();
+          curY = HEADER_H + 6;
+          onFirstPage = false;
+          return;
+        }
+        if (curY + needed > pageH - 20) {
+          doc.addPage("letter", "landscape");
+          drawBanner();
+          curY = HEADER_H + 6;
+        }
+      }
+
+      function drawSectionTitle(label, priceStr) {
+        ensureSpace(MIN_SPACE);
+        doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(26,24,21);
+        doc.text(label, ML, curY + 7);
+        doc.setFont("helvetica","normal"); doc.setTextColor(45,122,79);
+        doc.setFontSize(7);
+        doc.text(priceStr, ML + doc.getTextWidth(label) + 5, curY + 7);
+        doc.setTextColor(26,24,21);
+        curY += 12;
+      }
+
+      function drawTable(head, body, foot, colStyles) {
+        doc.autoTable({
+          startY: curY,
+          head, body, foot,
+          theme: "grid",
+          styles: {
+            fontSize: 7.5,
+            cellPadding: {top:2.5, bottom:2.5, left:4, right:4},
+            font: "helvetica",
+            textColor: [26,24,21],
+            overflow: "ellipsize"
+          },
+          headStyles: {
+            fillColor:[240,237,232], textColor:[90,85,80],
+            fontStyle:"bold", fontSize:7, cellPadding:{top:2.5,bottom:2.5,left:4,right:4}
+          },
+          footStyles: {
+            fillColor:[237,247,241], fontStyle:"bold",
+            textColor:[45,122,79], fontSize:7.5
+          },
+          columnStyles: colStyles || {},
+          margin: {left:ML, right:MR, top: HEADER_H + 4},
+          pageBreak: "auto",
+          // rowPageBreak removed — was causing slow pre-calculation on every row
+          didDrawPage: (data) => {
+            // Only redraw banner on continuation pages (page 2+)
+            if (data.pageNumber > 1) drawBanner();
+          }
+        });
+        curY = doc.lastAutoTable.finalY + 8;
+      }
+
+      const activeSecs = ALL_SECS.filter(s=>ACTIVE[s.id]&&ACTIVE[s.id].size>0);
+
+      activeSecs.forEach(sec => {
+        const priceStr = sec.itemPrices ? "(varies)" : "— $"+sec.price.toFixed(2);
+        let head, body, foot, colStyles;
+
+        if (sec.type === "liquor") {
+          // Columns: Item | Tare | Open wt | End wt | Added wt | Open oz | End oz | Added oz | Cons oz | Price | Sales
+          head = [["Item","Tare","Open wt","End wt","Added wt","Open oz","End oz","Added oz","Cons oz","Price","Sales"]];
+          let totC=0, totS=0;
+          body = calcLiquorCons(sec).map(r=>{
+            if(r.cons!==null){totC+=r.cons; if(r.sales!==null)totS+=r.sales;}
+            return [
+              r.it,
+              BW[r.it]!==undefined?BW[r.it]:"?",
+              r.d.o||"—", r.d.e||"—", r.d.a||"",          // weights: open, end, added
+              r.openOz!==null?Math.round(r.openOz):"—",    // open oz
+              r.endOz!==null?Math.round(r.endOz):"—",      // end oz
+              r.addOz?"+"+Math.round(r.addOz):"",          // added oz (green)
+              r.cons!==null?r.cons:"—",                     // consumed (ceiling)
+              fmt$(r.pr),
+              r.sales!==null?fmt$(r.sales):"—"
+            ];
+          });
+          foot=[["Total","","","","","","","",Math.round(totC)+" oz","",fmt$(totS)]];
+          colStyles={
+            0:{cellWidth:85},
+            1:{halign:"right",textColor:[120,115,108]},
+            2:{halign:"right"},3:{halign:"right"},
+            4:{halign:"right",textColor:[45,122,79]},
+            5:{halign:"right",textColor:[80,80,80]},
+            6:{halign:"right",textColor:[80,80,80]},
+            7:{halign:"right",fontStyle:"bold",textColor:[45,122,79]},
+            8:{halign:"right",fontStyle:"bold",textColor:[184,64,64]},
+            9:{halign:"right"},
+            10:{halign:"right",fontStyle:"bold",textColor:[45,122,79]}
+          };
+
+        } else if (sec.type === "wine") {
+          // Columns: Item | Size | Open btl | End btl | Added btl | Open gl | End gl | Added gl | Cons gl | Price | Sales
+          head = [["Item","Size","Open btl","End btl","Added btl","Open gl","End gl","Added gl","Cons gl","Price","Sales"]];
+          let totC=0, totS=0;
+          body = calcWineCons(sec).map(r=>{
+            if(r.cons!==null){totC+=r.cons; if(r.sales!==null)totS+=r.sales;}
+            return [
+              r.it, (WML[r.it]||750)+"ml",
+              r.d.o||"—", r.d.e||"—", r.d.a||"",
+              r.openG!==null?r.openG.toFixed(1):"—",
+              r.endG!==null?r.endG.toFixed(1):"—",
+              r.addG?"+"+r.addG.toFixed(1):"",
+              r.cons!==null?r.cons:"—",
+              fmt$(r.pr),
+              r.sales!==null?fmt$(r.sales):"—"
+            ];
+          });
+          foot=[["Total","","","","","","","",Math.round(totC)+" gl","",fmt$(totS)]];
+          colStyles={
+            0:{cellWidth:95},
+            1:{halign:"right",textColor:[120,115,108]},
+            2:{halign:"right"},3:{halign:"right"},
+            4:{halign:"right",textColor:[45,122,79]},
+            5:{halign:"right",textColor:[80,80,80]},
+            6:{halign:"right",textColor:[80,80,80]},
+            7:{halign:"right",fontStyle:"bold",textColor:[45,122,79]},
+            8:{halign:"right",fontStyle:"bold",textColor:[184,64,64]},
+            9:{halign:"right"},
+            10:{halign:"right",fontStyle:"bold",textColor:[45,122,79]}
+          };
+
+        } else {
+          // Beer/coolers/non-alc: Item | Opening | Added | Ending | Consumed | Price | Sales
+          head = [["Item","Opening","Added","Ending","Consumed","Price","Sales"]];
+          let totC=0, totS=0;
+          body = calcBeerCons(sec).map(r=>{
+            if(r.cons!==null){totC+=r.cons; if(r.sales!==null)totS+=r.sales;}
+            const aB = parseFloat(r.d.a)||0;
+            return [
+              r.it,
+              r.d.o||"—",
+              aB?"+"+aB:"",           // added — CORRECT order
+              r.d.e||"—",
+              r.cons!==null?Math.round(r.cons):"—",
+              fmt$(r.pr),
+              r.sales!==null?fmt$(r.sales):"—"
+            ];
+          });
+          foot=[["Total","","","",Math.round(totC),"",fmt$(totS)]];
+          colStyles={
+            0:{cellWidth:130},
+            1:{halign:"right"},
+            2:{halign:"right",fontStyle:"bold",textColor:[45,122,79]},
+            3:{halign:"right"},
+            4:{halign:"right",fontStyle:"bold",textColor:[184,64,64]},
+            5:{halign:"right"},
+            6:{halign:"right",fontStyle:"bold",textColor:[45,122,79]}
+          };
+        }
+
+        drawSectionTitle(sec.label, priceStr);
+        drawTable(head, body, foot, colStyles);
+      });
+
+      // ── Summary + Tickets — switch to portrait for the receipt page ──
+      doc.addPage("letter", "portrait");
+      const pageW_r = doc.internal.pageSize.getWidth();
+      const pageH_r = doc.internal.pageSize.getHeight();
+      drawBanner();
+      curY = HEADER_H + 8;
+
+      // ── Event detail block ──
+      doc.setFontSize(12); doc.setFont("helvetica","bold"); doc.setTextColor(26,24,21);
+      doc.text("Banquet Receipt", ML, curY + 12);
+      curY += 22;
+
+      // 4-cell info grid
+      const boxW = (pageW_r - ML - MR);
+      const cellW = boxW / 4;
+      const infoBoxH = 36;
+      const cells = [
+        { label:"DATE",        value: EVT.date  || "—" },
+        { label:"GROUP / EVENT", value: EVT.group || "—" },
+        { label:"BARTENDER",   value: EVT.bar   || "—" },
+        { label:"ROOM",        value: EVT.room  || "—" }
+      ];
+
+      cells.forEach((cell, i) => {
+        const cx = ML + i * cellW;
+        // alternating bg
+        doc.setFillColor(i % 2 === 0 ? 240 : 232, i % 2 === 0 ? 237 : 234, i % 2 === 0 ? 232 : 228);
+        doc.rect(cx, curY, cellW, infoBoxH, "F");
+        // label
+        doc.setFontSize(6); doc.setFont("helvetica","normal"); doc.setTextColor(120,115,108);
+        doc.text(cell.label, cx + 5, curY + 10);
+        // value
+        doc.setFontSize(8.5); doc.setFont("helvetica","bold"); doc.setTextColor(26,24,21);
+        const val = doc.splitTextToSize(cell.value, cellW - 10);
+        doc.text(val[0], cx + 5, curY + 22);
+      });
+
+      curY += infoBoxH + 10;
+
+      // ── Calculations ──
+      const grandTotal    = activeSecs.reduce((a,s)=>a+getSecTotalSales(s.id),0);
+      const collectedPDF  = Object.values(CASH_RECON).reduce((a,v)=>a+(parseFloat(v)||0),0);
+      // Host or Both: grat+tax applied to host-owed portion only
+      // Cash: grat+tax already paid by guests — no extra charge
+      const hostBase      = BAR_TYPE === "both" ? Math.max(0, grandTotal - collectedPDF)
+                          : BAR_TYPE === "host"  ? grandTotal : 0;
+      const cashExceedsTotal = BAR_TYPE === "both" && collectedPDF > grandTotal;
+      const gratPDF       = hostBase * GRATUITY_RATE;
+      const taxPDF        = hostBase * TAX_RATE;  // tax on subtotal only — matches Micros
+      const finalTotalPDF = hostBase + gratPDF + taxPDF;
+      // For cash bar: tax only (tips go to bartender, no auto-grat)
+      const cashTaxOnly   = grandTotal * TAX_RATE;
+      const cashExpected  = grandTotal + cashTaxOnly;
+
+      // ── Category summary table ──
+      const sumBody = activeSecs.map(s=>{
+        const prLabel = s.itemPrices ? "varies" : fmt$(s.price);
+        return [s.label, Math.round(getSecTotalCons(s.id)), s.unit, prLabel, fmt$(getSecTotalSales(s.id))];
+      });
+      doc.autoTable({
+        startY: curY,
+        head: [["Category","Consumed","Unit","Price","Sales $"]],
+        body: sumBody,
+        theme: "grid",
+        styles: {fontSize:8, cellPadding:{top:3,bottom:3,left:4,right:4}, font:"helvetica", textColor:[26,24,21]},
+        headStyles: {fillColor:[240,237,232], textColor:[100,95,90], fontStyle:"bold", fontSize:7},
+        columnStyles: {
+          0:{cellWidth:110},
+          1:{halign:"right", fontStyle:"bold", textColor:[184,64,64]},
+          2:{halign:"left"},
+          3:{halign:"right"},
+          4:{halign:"right", fontStyle:"bold", textColor:[45,122,79]}
+        },
+        margin: {left:ML, right:MR, top: HEADER_H + 4},
+        didDrawPage: (data) => { if (data.pageNumber > 1) drawBanner(); }
+      });
+      curY = doc.lastAutoTable.finalY + 8;
+
+      // ── Bill breakdown table ──
+      const billBody = [];
+      const billColStyles = {
+        0:{cellWidth:180, fontStyle:"normal", textColor:[80,80,80]},
+        1:{halign:"right", fontStyle:"bold", textColor:[26,24,21]}
+      };
+
+      if (BAR_TYPE === "cash") {
+        // Cash bar — tips go to bartender, no auto-grat. Tax only.
+        const reconLabels = {cash:"Cash",visa:"Visa",mastercard:"Mastercard",amex:"Amex",debit:"Debit",roomCharge:"Room charge"};
+        const cashLines = Object.keys(CASH_RECON).filter(k=>parseFloat(CASH_RECON[k])>0);
+        billBody.push(
+          ["Consumption value (pre-tax)", fmt$(grandTotal)],
+          ["HST / Tax (14%)", fmt$(cashTaxOnly)],
+          ["Expected total from guests", fmt$(cashExpected)],
+          ["— Cash bar payments —", ""]
+        );
+        if (cashLines.length > 0) {
+          cashLines.forEach(k => billBody.push(["  " + reconLabels[k], fmt$(parseFloat(CASH_RECON[k]))]));
+        } else {
+          billBody.push(["  No payments entered", "—"]);
+        }
+        const cashVariance = collectedPDF - cashExpected; // cashExpected = consumption + 14% tax only
+        doc.autoTable({
+          startY: curY,
+          body: billBody,
+          foot: [
+            ["Total collected", fmt$(collectedPDF)],
+            ["Variance", (cashVariance>=0?"+":"") + fmt$(cashVariance)]
+          ],
+          theme: "grid",
+          styles: {fontSize:8.5, cellPadding:{top:4,bottom:4,left:5,right:5}, font:"helvetica", textColor:[60,60,60]},
+          footStyles: {fontStyle:"bold", fontSize:9},
+          didParseCell:(data)=>{
+            if(data.section==="body" && String(data.cell.raw||"").startsWith("—")){
+              data.cell.styles.fillColor=[240,237,232]; data.cell.styles.fontStyle="bold"; data.cell.styles.textColor=[80,75,70];
+            }
+            if(data.section==="foot"){
+              const isVariance = data.row.index===1;
+              data.cell.styles.fillColor = isVariance ? [26,24,21] : [240,237,232];
+              data.cell.styles.textColor = isVariance ? (cashVariance>=0?[100,255,150]:[248,113,113]) : [60,60,60];
+            }
+          },
+          columnStyles: billColStyles,
+          margin: {left:ML, right:MR}
+        });
+      } else {
+        // Host or Both
+        if (BAR_TYPE === "both") {
+          billBody.push(
+            ["Total consumption (host + cash bar)", fmt$(grandTotal)],
+            ["Less: cash bar collected",            "- " + fmt$(collectedPDF)],
+            ["Host subtotal",                       cashExceedsTotal ? "$0.00  (cash bar covers all)" : fmt$(hostBase)]
+          );
+          if (cashExceedsTotal) billBody.push(["Note: cash collected exceeds total — host owes nothing", ""]);
+        } else {
+          billBody.push(["Subtotal", fmt$(grandTotal)]);
+        }
+        billBody.push(
+          ["Auto-gratuity (18%)", fmt$(gratPDF)],
+          ["HST / Tax (14%)",     fmt$(taxPDF)]
+        );
+        if (TICKET_TOTAL > 0) billBody.push(["Host bar tickets received", String(TICKET_TOTAL)]);
+        if (BAR_TYPE === "both") {
+          const reconLabels = {cash:"Cash",visa:"Visa",mastercard:"Mastercard",amex:"Amex",debit:"Debit",roomCharge:"Room charge"};
+          const cashLines = Object.keys(CASH_RECON).filter(k=>parseFloat(CASH_RECON[k])>0);
+          if (cashLines.length > 0) {
+            billBody.push(["— Cash bar payments —", ""]);
+            cashLines.forEach(k => billBody.push(["  " + reconLabels[k], fmt$(parseFloat(CASH_RECON[k]))]));
+            billBody.push(["  Total cash collected", fmt$(collectedPDF)]);
+          }
+        }
+        doc.autoTable({
+          startY: curY,
+          body: billBody,
+          foot: [["TOTAL OWING", fmt$(finalTotalPDF)]],
+          theme: "grid",
+          styles: {fontSize:8.5, cellPadding:{top:4,bottom:4,left:5,right:5}, font:"helvetica", textColor:[60,60,60]},
+          footStyles: {fillColor:[26,24,21], fontStyle:"bold", textColor:[100,255,150], fontSize:11},
+          didParseCell:(data)=>{
+            if(data.section==="body" && String(data.cell.raw||"").startsWith("—")){
+              data.cell.styles.fillColor=[240,237,232]; data.cell.styles.fontStyle="bold"; data.cell.styles.textColor=[80,75,70];
+            }
+          },
+          columnStyles: billColStyles,
+          margin: {left:ML, right:MR}
+        });
+      }
+      curY = doc.lastAutoTable.finalY + 8;
+
+      // Notes
+      if (TICKET_NOTES && TICKET_NOTES.trim()) {
+        doc.setFontSize(7); doc.setFont("helvetica","italic"); doc.setTextColor(100,95,90);
+        const nlines = doc.splitTextToSize("Notes: " + TICKET_NOTES.trim(), pageW - ML - MR);
+        doc.text(nlines, ML, curY); curY += nlines.length * 9 + 4;
+      }
+
+      // Page numbers
+      const totalPages = doc.internal.getNumberOfPages();
+      for(let i=1;i<=totalPages;i++){
+        doc.setPage(i);
+        doc.setFontSize(6.5); doc.setFont("helvetica","normal"); doc.setTextColor(160,155,150);
+        doc.text(`Page ${i} of ${totalPages}`, pageW - MR, pageH - 8, {align:"right"});
+      }
+
+      const fname = ([EVT.group||"banquet", EVT.date].filter(Boolean).join("_")||"banquet")
+        .replace(/[^a-z0-9_-]/gi,"_") + ".pdf";
+      document.getElementById("pdfOverlay").classList.remove("open");
+      doc.save(fname);
+      showToast("PDF downloaded!");
+    } catch(err){
+      document.getElementById("pdfOverlay").classList.remove("open");
+      console.error(err); showToast("PDF error — check console");
+    }
+  }, 120);
+}
+
+// ─── SAVE / LOAD / EXPORT / IMPORT ───────────────────────────────────────────
+const LS_KEY="banquet_saves_v3";
+function getSaves(){ try{return JSON.parse(localStorage.getItem(LS_KEY)||"{}");}catch{return {};} }
+function setSaves(o){ try{localStorage.setItem(LS_KEY,JSON.stringify(o));}catch{} }
+
+function getSnapshot(){
+  const activeSerial={};
+  Object.keys(ACTIVE).forEach(sid=>{activeSerial[sid]=[...ACTIVE[sid]];});
+  return {date:EVT.date,group:EVT.group,bar:EVT.bar,room:EVT.room||'',barType:BAR_TYPE,active:activeSerial,data:JSON.parse(JSON.stringify(DAT)),ticketTotal:TICKET_TOTAL,ticketNotes:TICKET_NOTES,cashRecon:JSON.parse(JSON.stringify(CASH_RECON))};
+}
+function loadSnapshot(snap){
+  EVT={date:snap.date||"",group:snap.group||"",bar:snap.bar||"",room:snap.room||""};
+  ACTIVE={};
+  Object.keys(snap.active||{}).forEach(sid=>{ACTIVE[sid]=new Set(snap.active[sid]);});
+  DAT=snap.data||{};
+  TICKET_TOTAL=snap.ticketTotal||0;
+  TICKET_NOTES=snap.ticketNotes||"";
+  BAR_TYPE=snap.barType||"host";
+  CASH_RECON=snap.cashRecon||{cash:0,visa:0,mastercard:0,amex:0,debit:0,roomCharge:0};
+  ALL_SECS.forEach(sec=>{
+    if(!DAT[sec.id]) DAT[sec.id]={};
+    if(ACTIVE[sec.id]) ACTIVE[sec.id].forEach(it=>{
+      if(!DAT[sec.id][it]) DAT[sec.id][it]={o:"",a:"",e:""};
+      else if(DAT[sec.id][it].a===undefined) DAT[sec.id][it].a=""; // migrate old saves
+    });
+  });
+  document.getElementById("setupScreen").style.display="none";
+  document.getElementById("appScreen").style.display="block";
+  const badgeColor = BAR_TYPE==='host'?'#1a1815':BAR_TYPE==='cash'?'#2d7a4f':'#1e5fa8';
+  const badgeLabel = BAR_TYPE==='host'?'HOST BAR':BAR_TYPE==='cash'?'CASH BAR':'HOST + CASH';
+  document.getElementById("eventInfo").innerHTML =
+    [EVT.date,EVT.group,EVT.bar,EVT.room].filter(Boolean).join(" · ")
+    + ` <span style="margin-left:6px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${badgeColor};color:#fff;vertical-align:middle">${badgeLabel}</span>`;
+  buildSidebar(); buildPages(); buildMobileNav(); render();
+  const first=ALL_SECS.find(s=>ACTIVE[s.id]&&ACTIVE[s.id].size>0);
+  if(first) goPage(first.id);
+  // Restore notes textarea if already visible
+  const tn=document.getElementById("ticketNotes"); if(tn) tn.value=TICKET_NOTES;
+}
+
+function openSaveModal(){
+  const g=EVT.group||"";
+  document.getElementById("saveName").value=g?g+" — "+new Date().toLocaleDateString():"Banquet "+new Date().toLocaleDateString();
+  document.getElementById("saveModal").classList.add("open");
+  setTimeout(()=>document.getElementById("saveName").focus(),80);
+}
+function closeSaveModal(){ document.getElementById("saveModal").classList.remove("open"); }
+function doSave(){
+  const name=document.getElementById("saveName").value.trim();
+  if(!name){showToast("Please enter a name");return;}
+  const saves=getSaves(); saves[name]={snap:getSnapshot(),savedAt:new Date().toLocaleString()};
+  setSaves(saves); closeSaveModal(); showToast("Saved: "+name);
+}
+function openLoadModal(){
+  const saves=getSaves(),keys=Object.keys(saves);
+  document.getElementById("savesList").innerHTML=keys.length===0
+    ?'<div class="empty-msg">No saves yet.</div>'
+    :keys.slice().reverse().map(k=>`<div class="save-item">
+        <div><div class="si-name">${k}</div><div class="si-date">Saved: ${saves[k].savedAt}</div></div>
+        <div class="si-btns">
+          <button class="btn" onclick="doLoad(${JSON.stringify(k)})">Load</button>
+          <button class="btn btn-danger" onclick="doDelete(${JSON.stringify(k)})">Delete</button>
+        </div></div>`).join("");
+  document.getElementById("loadModal").classList.add("open");
+}
+function closeLoadModal(){ document.getElementById("loadModal").classList.remove("open"); }
+function doLoad(name){ const s=getSaves(); if(!s[name])return; loadSnapshot(s[name].snap); closeLoadModal(); showToast("Loaded: "+name); }
+function doDelete(name){ const s=getSaves(); delete s[name]; setSaves(s); openLoadModal(); showToast("Deleted"); }
+
+function exportJSON(){
+  const snap=getSnapshot();
+  const name=(snap.group||"banquet").replace(/[^a-z0-9]/gi,"_");
+  const blob=new Blob([JSON.stringify({savedAt:new Date().toISOString(),snap},null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=name+"_"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href); showToast("Exported");
+}
+function importJSON(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{ const obj=JSON.parse(ev.target.result); loadSnapshot(obj.snap||obj); showToast("Imported: "+(obj.snap?.group||file.name)); }
+    catch{ showToast("Could not read file"); }
+  };
+  r.readAsText(file); e.target.value="";
+}
+
+function showToast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2500); }
+
+document.getElementById("saveModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeSaveModal();});
+document.getElementById("loadModal").addEventListener("click",e=>{if(e.target===e.currentTarget)closeLoadModal();});
+
+// ─── AUTOSAVE ─────────────────────────────────────────────────────────────────
+function autosave() {
+  // Only autosave when the sheet is active (not on setup screen)
+  if (document.getElementById("appScreen").style.display === "none") return;
+  const saves = getSaves();
+  saves["__autosave__"] = { snap:getSnapshot(), savedAt:new Date().toLocaleString() };
+  setSaves(saves);
+  // Show subtle indicator
+  const t = document.getElementById("toast");
+  t.textContent = "Auto-saved"; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1500);
+}
+setInterval(autosave, 60000); // every 60 seconds
+
+// Restore autosave prompt on page load
+window.addEventListener("load", () => {
+  const saves = getSaves();
+  if (saves["__autosave__"]) {
+    const snap = saves["__autosave__"].snap;
+    const name = [snap.group, snap.date].filter(Boolean).join(" · ") || "unknown event";
+    const savedAt = saves["__autosave__"].savedAt;
+    if (confirm(`An autosaved session was found:\n\n"${name}"\nSaved: ${savedAt}\n\nRestore it?`)) {
+      loadSnapshot(snap);
+    }
+    // Clear autosave regardless — user has been notified
+    const clearedSaves = getSaves();
+    delete clearedSaves["__autosave__"];
+    setSaves(clearedSaves);
+  }
+});
+
+// ─── RESPONSIVE RESIZE ──────────────────────────────────────────────────────
+// Resize: CSS handles table/card switching automatically
+// Only need to re-render content on significant size change
+let _resizeTimer, _lastMobile = isMobile();
+window.addEventListener("resize", () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    const nowMobile = isMobile();
+    if (nowMobile !== _lastMobile) {
+      _lastMobile = nowMobile;
+      if (document.getElementById("appScreen").style.display !== "none") render();
+    }
+  }, 300);
+});
+
+// ─── PWA: iOS/Android home screen install support ───────────────────────────
+// Apple and Android use the meta tags in <head> for home screen install.
+// No manifest file needed for basic PWA functionality.
+
+// ─── PWA: Offline support requires hosting on a web server ─────────────────────
+// To enable full offline use, host this file on any web server and add a
+// separate sw.js service worker file. The app works fully online without it.
+
+// ─── DARK MODE ───────────────────────────────────────────────────────────────
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+  const newTheme = isDark ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", newTheme);
+  localStorage.setItem("banquet_theme", newTheme);
+  updateDarkIcon(newTheme === "dark");
+}
+
+function updateDarkIcon(isDark) {
+  const btn = document.getElementById("darkToggleBtn");
+  const icon = document.getElementById("darkIcon");
+  if (!btn || !icon) return;
+  if (isDark) {
+    // Show sun icon (click to go light)
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    btn.title = "Switch to light mode";
+  } else {
+    // Show moon icon (click to go dark)
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+    btn.title = "Switch to dark mode";
+  }
+}
+
+// Restore saved theme on load
+(function() {
+  const saved = localStorage.getItem("banquet_theme");
+  if (saved === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+    // Icon will be updated after DOM loads
+    document.addEventListener("DOMContentLoaded", () => updateDarkIcon(true));
+  }
+})();
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildSetup();
+// Apply dark icon state after page loads
+setTimeout(() => {
+  const t = localStorage.getItem("banquet_theme");
+  updateDarkIcon(t === "dark");
+}, 0);
+</script>
+</body>
+</html>
