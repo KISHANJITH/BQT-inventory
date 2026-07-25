@@ -678,6 +678,19 @@ const auth = firebase.auth();
 const dbfs = firebase.firestore();
 
 function usernameToEmail(u){ return u.trim().toLowerCase().replace(/[^a-z0-9._-]/g,"") + "@" + STAFF_EMAIL_DOMAIN; }
+function normalizeUsername(u){ return u.trim().toLowerCase().replace(/[^a-z0-9._-]/g,""); }
+// Every account gets a guaranteed-unique internal email, decoupled from the username.
+// This is what lets a manager remove someone and immediately re-add the same username —
+// Firebase Auth itself never sees the same login twice, even if the friendly name repeats.
+function generateUniqueAuthEmail(username){
+  const rand = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  return normalizeUsername(username) + "_" + rand + "@" + STAFF_EMAIL_DOMAIN;
+}
+// Looks up which internal email a username currently points to (readable pre-login).
+async function resolveUsernameToEmail(username){
+  const doc = await dbfs.collection("usernames").doc(normalizeUsername(username)).get();
+  return doc.exists ? doc.data().authEmail : null;
+}
 
 // ─── AUTH STATE ───────────────────────────────────────────────────────────────
 let ME = null; // { uid, username, role }
@@ -714,10 +727,12 @@ async function doFirstRunSetup() {
       showLoginScreen();
       return;
     }
-    const cred = await auth.createUserWithEmailAndPassword(usernameToEmail(username), password);
+    const authEmail = generateUniqueAuthEmail(username);
+    const cred = await auth.createUserWithEmailAndPassword(authEmail, password);
     const uid = cred.user.uid;
     const batch = dbfs.batch();
     batch.set(dbfs.collection("users").doc(uid), { username, role:"manager", createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: username });
+    batch.set(dbfs.collection("usernames").doc(normalizeUsername(username)), { authEmail, uid });
     batch.set(dbfs.collection("meta").doc("bootstrap"), { done: true });
     await batch.commit();
     // onAuthStateChanged will pick this up and boot into the app
@@ -731,7 +746,9 @@ async function doLoginBQ() {
   const password = document.getElementById("li-pw").value;
   const err = document.getElementById("li-err"); err.textContent = "";
   try {
-    await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
+    const authEmail = await resolveUsernameToEmail(username);
+    if (!authEmail) { err.textContent = "Wrong username or password."; return; }
+    await auth.signInWithEmailAndPassword(authEmail, password);
     document.getElementById("li-pw").value = "";
   } catch(e) {
     err.textContent = "Wrong username or password.";
@@ -2353,12 +2370,24 @@ async function addAccount(){
   const err = document.getElementById("acc-err"); err.textContent = "";
   if (!username || password.length < 6) { err.textContent = "Username and a password of at least 6 characters required."; return; }
   try {
+    // Only block if this username is CURRENTLY in active use (has a live users/{uid} doc) —
+    // if it was previously removed, the mapping still exists but points to a now-deleted
+    // user doc, so it's fine to reuse the name for a fresh account.
+    const existingMap = await dbfs.collection("usernames").doc(normalizeUsername(username)).get();
+    if (existingMap.exists) {
+      const oldUserDoc = await dbfs.collection("users").doc(existingMap.data().uid).get();
+      if (oldUserDoc.exists) { err.textContent = "That username is already in use by an active account."; return; }
+    }
     const sAuth = getSecondaryAuth();
-    const cred = await sAuth.createUserWithEmailAndPassword(usernameToEmail(username), password);
+    const authEmail = generateUniqueAuthEmail(username);
+    const cred = await sAuth.createUserWithEmailAndPassword(authEmail, password);
     const uid = cred.user.uid;
-    await dbfs.collection("users").doc(uid).set({
+    const batch = dbfs.batch();
+    batch.set(dbfs.collection("users").doc(uid), {
       username, role, createdAt: firebase.firestore.FieldValue.serverTimestamp(), createdBy: ME.username
     });
+    batch.set(dbfs.collection("usernames").doc(normalizeUsername(username)), { authEmail, uid });
+    await batch.commit();
     await sAuth.signOut();
     await logActivity(`Added ${role} account — ${username}`);
     document.getElementById("acc-user").value = "";
