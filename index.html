@@ -852,14 +852,11 @@ function startLiveSync(){
   _appliedRemoteOnce = false;
   _lastActiveItemsSig = null;
   _liveUnsub = dbfs.collection("banquet_live").doc("current").onSnapshot(snap => {
-    // Firestore delivers a snapshot for OUR OWN writes too (that's how cross-device sync
-    // works) — but our own edits are already reflected instantly in the UI by set() itself,
-    // optimistically, before this even fires. Rebuilding the whole page again here for our
-    // own pending write was resetting scroll position, making it look like the app "kicked
-    // you back to the top of the section" after every single value you typed. Only a
-    // confirmed change — the very first load, or a genuine edit from another device — needs
-    // the full re-sync; our own still-in-flight write does not.
-    if (snap.metadata && snap.metadata.hasPendingWrites && _appliedRemoteOnce) return;
+    // IMPORTANT: we never skip processing a snapshot based on "is this my own pending write" —
+    // a shared document can carry a genuine change from ANOTHER device bundled together with
+    // our own still-in-flight write, and discarding it would silently drop real cross-device
+    // updates. Every snapshot is always applied; scroll-position disruption is solved
+    // separately, below, by preserving and restoring scroll position around the re-render.
     const state = snap.exists ? snap.data() : { active:false };
     if (!state.active) {
       // No live sheet — show setup (only act if we're not already there, avoids flicker)
@@ -1614,6 +1611,13 @@ function buildMobileBeerCards(sid) {
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
+  // Rebuilding a table's rows replaces its DOM nodes, which resets scroll position by
+  // default. Since render() can run in response to your OWN typing, another device's
+  // edit, or anything else — and we never want to skip a real update just to avoid this —
+  // we instead simply remember where you were scrolled to and put you right back there.
+  const scrollEl = document.getElementById("mainContent");
+  const savedScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+
   const activeSecs = ALL_SECS.filter(s => ACTIVE[s.id] && ACTIVE[s.id].size > 0);
 
   ALL_SECS.forEach(sec => {
@@ -1738,6 +1742,9 @@ function render() {
       tt.innerHTML = rows;
     }
   }
+
+  // Put the user back exactly where they were scrolled to before this rebuild.
+  if (scrollEl) scrollEl.scrollTop = savedScrollTop;
 }
 
 function renderTickets() {
