@@ -890,8 +890,19 @@ function startLiveSync(){
 
     if (structureChanged) {
       buildSidebar(); buildPages(); buildMobileNav();
-      const first = ALL_SECS.find(s => ACTIVE[s.id] && ACTIVE[s.id].size > 0);
-      goPage(first ? first.id : "summary");
+      // buildPages() recreates the page elements, so we must re-apply which one is showing.
+      // Critically: if the section you were working in still exists, stay there. Only fall
+      // back to the first section when your current page genuinely no longer exists (e.g.
+      // a brand new sheet, or a save was loaded with a different set of items). Previously
+      // this always jumped to the first section, which yanked you out of Liqueur (or
+      // wherever you were) mid-entry any time this branch fired.
+      const stillExists = activeId && document.getElementById("page-" + activeId);
+      if (stillExists) {
+        goPage(activeId);
+      } else {
+        const first = ALL_SECS.find(s => ACTIVE[s.id] && ACTIVE[s.id].size > 0);
+        goPage(first ? first.id : "summary");
+      }
     }
     render();
     document.getElementById("authLoading").classList.remove("show");
