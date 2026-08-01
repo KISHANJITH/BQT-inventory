@@ -869,9 +869,10 @@ function startLiveSync(){
       document.getElementById("authLoading").classList.remove("show");
       return;
     }
-    // Skip re-hydrating while the user is actively typing, so we never yank focus/overwrite mid-keystroke
-    const ae = document.activeElement;
-    if (_appliedRemoteOnce && ae && (ae.tagName==="INPUT" || ae.tagName==="TEXTAREA")) return;
+    // We ALWAYS apply incoming state — never discard an update just because an input is
+    // focused. (Previously this returned early whenever any field had focus, which on a
+    // banquet sheet is almost always true while working, so other devices' changes were
+    // being silently thrown away.) render() protects the specific field you're typing in.
     _appliedRemoteOnce = true;
     hydrateFromLive(state);
 
@@ -1372,14 +1373,14 @@ function buildLiquorRows(sid) {
         <button class="add-btn ${addHas}" onclick="toggleAddRow('liq_${uid}')" title="Add stock" aria-label="Add stock">${addLabel}</button>
         <div class="add-input-wrap" id="liq_${uid}">
           <input class="num" type="number" step="0.1" min="0" placeholder="oz" value="${r.d.a}"
-            onchange="set('${se}','${ie}','a',this.value)" id="liq_inp_${uid}">
+            data-fkey="${se}|${ie}|a" onchange="set('${se}','${ie}','a',this.value)" id="liq_inp_${uid}">
           <button class="add-confirm" onclick="confirmAdd('liq_${uid}')">✓</button>
           <button class="add-cancel" onclick="cancelAdd('liq_${uid}')">✕</button>
         </div>
       </td>
       <td class="tare-val">${bw}</td>
-      <td><input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)"></td>
-      <td><input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)"></td>
+      <td><input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" data-fkey="${se}|${ie}|o" onchange="set('${se}','${ie}','o',this.value)"></td>
+      <td><input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" data-fkey="${se}|${ie}|e" onchange="set('${se}','${ie}','e',this.value)"></td>
       <td class="calc-val">${r.openOz!==null?Math.round(r.openOz):"—"}</td>
       <td class="add-val">${r.addOz?"+"+Math.round(r.addOz):""}</td>
       <td class="calc-val">${r.endOz!==null?Math.round(r.endOz):"—"}</td>
@@ -1411,14 +1412,14 @@ function buildWineRows(sid) {
         <button class="add-btn ${addHasW}" onclick="toggleAddRow('wine_${uidW}')" title="Add stock" aria-label="Add stock">${addLabelW}</button>
         <div class="add-input-wrap" id="wine_${uidW}">
           <input class="num" type="number" step="0.05" min="0" placeholder="bottles" value="${r.d.a}"
-            onchange="set('${se}','${ie}','a',this.value)" id="wine_inp_${uidW}">
+            data-fkey="${se}|${ie}|a" onchange="set('${se}','${ie}','a',this.value)" id="wine_inp_${uidW}">
           <button class="add-confirm" onclick="confirmAdd('wine_${uidW}')">✓</button>
           <button class="add-cancel" onclick="cancelAdd('wine_${uidW}')">✕</button>
         </div>
       </td>
       <td class="tare-val">${r.ml}ml</td>
-      <td><input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)"></td>
-      <td><input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)"></td>
+      <td><input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" data-fkey="${se}|${ie}|o" onchange="set('${se}','${ie}','o',this.value)"></td>
+      <td><input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" data-fkey="${se}|${ie}|e" onchange="set('${se}','${ie}','e',this.value)"></td>
       <td class="calc-val">${r.openG!==null?r.openG.toFixed(1):"—"}</td>
       <td class="add-val">${r.addG?"+"+r.addG.toFixed(1):""}</td>
       <td class="calc-val">${r.endG!==null?r.endG.toFixed(1):"—"}</td>
@@ -1451,14 +1452,14 @@ function buildBeerRows(sid) {
         <button class="add-btn ${addHasB}" onclick="toggleAddRow('beer_${uidB}')" title="Add stock" aria-label="Add stock">${addLabelB}</button>
         <div class="add-input-wrap" id="beer_${uidB}">
           <input class="num" type="number" step="1" min="0" placeholder="bottles" value="${r.d.a}"
-            onchange="set('${se}','${ie}','a',this.value)" id="beer_inp_${uidB}">
+            data-fkey="${se}|${ie}|a" onchange="set('${se}','${ie}','a',this.value)" id="beer_inp_${uidB}">
           <button class="add-confirm" onclick="confirmAdd('beer_${uidB}')">✓</button>
           <button class="add-cancel" onclick="cancelAdd('beer_${uidB}')">✕</button>
         </div>
       </td>
-      <td><input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)"></td>
+      <td><input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.o}" data-fkey="${se}|${ie}|o" onchange="set('${se}','${ie}','o',this.value)"></td>
       <td class="add-val">${aB?"+"+aB:""}</td>
-      <td><input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)"></td>
+      <td><input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.e}" data-fkey="${se}|${ie}|e" onchange="set('${se}','${ie}','e',this.value)"></td>
       <td class="cons-val">${r.cons!==null?Math.round(r.cons):"—"}</td>
       <td class="price-val">${fmt$(r.pr)}</td>
       <td class="sales-val">${r.sales!==null?fmt$(r.sales):"—"}</td>
@@ -1493,11 +1494,11 @@ function buildMobileLiquorCards(sid) {
       <div class="item-card-fields">
         <div class="item-card-field">
           <label>Opening wt (oz)</label>
-          <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)">
+          <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" data-fkey="${se}|${ie}|o" onchange="set('${se}','${ie}','o',this.value)">
         </div>
         <div class="item-card-field">
           <label>Ending wt (oz)</label>
-          <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)">
+          <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" data-fkey="${se}|${ie}|e" onchange="set('${se}','${ie}','e',this.value)">
         </div>
       </div>
       <div class="item-card-calc">
@@ -1508,7 +1509,7 @@ function buildMobileLiquorCards(sid) {
       </div>
       <button class="mobile-add-btn ${addHas}" onclick="toggleAddRow('${uid}')" aria-label="Add stock">${r.d.a?Math.round(r.addOz):"+"}</button>
       <div class="mobile-add-wrap" id="${uid}">
-        <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="oz" value="${r.d.a}" onchange="set('${se}','${ie}','a',this.value)">
+        <input class="num" type="number" step="0.1" min="0" inputmode="decimal" placeholder="oz" value="${r.d.a}" data-fkey="${se}|${ie}|a" onchange="set('${se}','${ie}','a',this.value)">
         <button class="add-confirm" onclick="confirmAdd('${uid}')">✓</button>
         <button class="add-cancel" onclick="cancelAdd('${uid}')">✕</button>
       </div>
@@ -1539,11 +1540,11 @@ function buildMobileWineCards(sid) {
       <div class="item-card-fields">
         <div class="item-card-field">
           <label>Opening (bottles)</label>
-          <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)">
+          <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.o}" data-fkey="${se}|${ie}|o" onchange="set('${se}','${ie}','o',this.value)">
         </div>
         <div class="item-card-field">
           <label>Ending (bottles)</label>
-          <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)">
+          <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="—" value="${r.d.e}" data-fkey="${se}|${ie}|e" onchange="set('${se}','${ie}','e',this.value)">
         </div>
       </div>
       <div class="item-card-calc">
@@ -1554,7 +1555,7 @@ function buildMobileWineCards(sid) {
       </div>
       <button class="mobile-add-btn ${addHas}" onclick="toggleAddRow('${uid}')" aria-label="Add stock">${r.d.a?r.addG.toFixed(1):"+"}</button>
       <div class="mobile-add-wrap" id="${uid}">
-        <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="bottles" value="${r.d.a}" onchange="set('${se}','${ie}','a',this.value)">
+        <input class="num" type="number" step="0.05" min="0" inputmode="decimal" placeholder="bottles" value="${r.d.a}" data-fkey="${se}|${ie}|a" onchange="set('${se}','${ie}','a',this.value)">
         <button class="add-confirm" onclick="confirmAdd('${uid}')">✓</button>
         <button class="add-cancel" onclick="cancelAdd('${uid}')">✕</button>
       </div>
@@ -1585,11 +1586,11 @@ function buildMobileBeerCards(sid) {
       <div class="item-card-fields">
         <div class="item-card-field">
           <label>Opening (btl)</label>
-          <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.o}" onchange="set('${se}','${ie}','o',this.value)">
+          <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.o}" data-fkey="${se}|${ie}|o" onchange="set('${se}','${ie}','o',this.value)">
         </div>
         <div class="item-card-field">
           <label>Ending (btl)</label>
-          <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.e}" onchange="set('${se}','${ie}','e',this.value)">
+          <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="—" value="${r.d.e}" data-fkey="${se}|${ie}|e" onchange="set('${se}','${ie}','e',this.value)">
         </div>
       </div>
       <div class="item-card-calc">
@@ -1598,7 +1599,7 @@ function buildMobileBeerCards(sid) {
       </div>
       <button class="mobile-add-btn ${addHas}" onclick="toggleAddRow('${uid}')" aria-label="Add stock">${aB?aB:"+"}</button>
       <div class="mobile-add-wrap" id="${uid}">
-        <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="bottles" value="${r.d.a}" onchange="set('${se}','${ie}','a',this.value)">
+        <input class="num" type="number" step="1" min="0" inputmode="numeric" placeholder="bottles" value="${r.d.a}" data-fkey="${se}|${ie}|a" onchange="set('${se}','${ie}','a',this.value)">
         <button class="add-confirm" onclick="confirmAdd('${uid}')">✓</button>
         <button class="add-cancel" onclick="cancelAdd('${uid}')">✕</button>
       </div>
@@ -1611,12 +1612,27 @@ function buildMobileBeerCards(sid) {
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 function render() {
-  // Rebuilding a table's rows replaces its DOM nodes, which resets scroll position by
-  // default. Since render() can run in response to your OWN typing, another device's
-  // edit, or anything else — and we never want to skip a real update just to avoid this —
-  // we instead simply remember where you were scrolled to and put you right back there.
+  // Rebuilding table rows replaces DOM nodes, which would normally blow away scroll
+  // position AND whatever field you're currently typing in. We never want to skip a real
+  // update (that silently loses other devices' work), so instead we snapshot exactly where
+  // you are — scroll position, focused field, cursor position, and any half-typed value —
+  // and restore all of it immediately after the rebuild.
   const scrollEl = document.getElementById("mainContent");
   const savedScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+
+  const ae = document.activeElement;
+  let focusInfo = null;
+  if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) {
+    const fkey = ae.getAttribute && ae.getAttribute("data-fkey");
+    if (fkey) {
+      focusInfo = {
+        fkey,
+        value: ae.value,                 // keep what you've typed so far, even if unsaved
+        selStart: ae.selectionStart,
+        selEnd: ae.selectionEnd
+      };
+    }
+  }
 
   const activeSecs = ALL_SECS.filter(s => ACTIVE[s.id] && ACTIVE[s.id].size > 0);
 
@@ -1743,8 +1759,22 @@ function render() {
     }
   }
 
-  // Put the user back exactly where they were scrolled to before this rebuild.
+  // Put the user back exactly where they were: same scroll position, same field focused,
+  // same cursor position, and whatever they'd typed but not yet committed.
   if (scrollEl) scrollEl.scrollTop = savedScrollTop;
+  if (focusInfo) {
+    const selector = '[data-fkey="' + focusInfo.fkey.replace(/"/g, '\\"') + '"]';
+    const candidates = document.querySelectorAll(selector);
+    // Desktop table and mobile card layouts both exist in the DOM; focus whichever is visible.
+    for (const el of candidates) {
+      if (el.offsetParent !== null || candidates.length === 1) {
+        el.value = focusInfo.value;
+        el.focus();
+        try { el.setSelectionRange(focusInfo.selStart, focusInfo.selEnd); } catch(e) {}
+        break;
+      }
+    }
+  }
 }
 
 function renderTickets() {
