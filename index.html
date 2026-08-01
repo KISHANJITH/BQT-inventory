@@ -436,6 +436,33 @@ tr.r-hostsub td:last-child{color:#7FE0A8;font-weight:700;font-size:13.5px}
 
 <div id="authLoading" class="show"><div class="spinner"></div></div>
 
+<!-- DIAGNOSTIC PANEL (temporary build only) -->
+<div id="dbgPanel" style="position:fixed;bottom:0;right:0;width:min(560px,100vw);height:42vh;background:#0b0b0b;color:#c9f;font:11px/1.45 ui-monospace,monospace;z-index:99999;border-top:2px solid #B8842F;border-left:2px solid #B8842F;display:flex;flex-direction:column">
+  <div style="display:flex;gap:6px;padding:5px 8px;background:#1a1a1a;align-items:center;flex-shrink:0">
+    <b style="color:#B8842F">DIAGNOSTICS</b>
+    <button onclick="dbgCopy()" style="margin-left:auto;font:11px monospace;padding:3px 9px;cursor:pointer">Copy all</button>
+    <button onclick="document.getElementById('dbgLog').innerHTML=''" style="font:11px monospace;padding:3px 9px;cursor:pointer">Clear</button>
+    <button onclick="document.getElementById('dbgPanel').style.display='none'" style="font:11px monospace;padding:3px 9px;cursor:pointer">Hide</button>
+  </div>
+  <div id="dbgLog" style="overflow:auto;padding:6px 8px;white-space:pre-wrap;word-break:break-word;flex:1"></div>
+</div>
+<script>
+function dlog(tag, msg){
+  const el = document.getElementById("dbgLog");
+  const t = new Date().toISOString().substr(11,12);
+  const line = t + "  [" + tag + "] " + msg;
+  if (el) { el.innerHTML += line + "\n"; el.scrollTop = el.scrollHeight; }
+  console.log(line);
+}
+function dbgCopy(){
+  const txt = document.getElementById("dbgLog").innerText;
+  navigator.clipboard.writeText(txt).then(()=>alert("Diagnostics copied — paste them into the chat."),
+    ()=>{ const t=document.createElement("textarea"); t.value=txt; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); alert("Diagnostics copied."); });
+}
+window.addEventListener("error", e => dlog("JS-ERROR", (e.message||"") + " @ " + (e.filename||"") + ":" + (e.lineno||"")));
+window.addEventListener("unhandledrejection", e => dlog("PROMISE-REJECT", String(e.reason && (e.reason.message||e.reason))));
+</script>
+
 <!-- Shown when the server can't be reached (e.g. previewing the file directly without the backend running) -->
 <div id="bootError">
   <div class="auth-card">
@@ -784,6 +811,7 @@ async function getUserDocWithRetry(uid, tries=6, delayMs=350){
 }
 
 auth.onAuthStateChanged(async (user) => {
+  dlog("authState", "fired; user=" + (user ? user.uid : "null"));
   document.getElementById("authLoading").classList.add("show");
   hideAllAuth();
   document.getElementById("authLoading").classList.add("show");
@@ -851,6 +879,7 @@ let _lastActiveItemsSig = null;
 // resetting to the first section, so an incoming update can never relocate someone.
 let _userPage = null;
 function startLiveSync(){
+  dlog("startLiveSync", "listener (re)attached — signature tracking reset");
   stopLiveSync();
   _appliedRemoteOnce = false;
   _lastActiveItemsSig = null;
@@ -861,12 +890,22 @@ function startLiveSync(){
     // updates. Every snapshot is always applied; scroll-position disruption is solved
     // separately, below, by preserving and restoring scroll position around the re-render.
     const state = snap.exists ? snap.data() : { active:false };
+    try {
+      const md = snap.metadata || {};
+      dlog("snapshot", "exists=" + snap.exists
+        + " active=" + state.active
+        + " fromCache=" + md.fromCache
+        + " pendingWrites=" + md.hasPendingWrites
+        + " itemKeys=[" + Object.keys(state.activeItems||{}).join(",") + "]"
+        + " updatedBy=" + state.updatedBy);
+    } catch(e){ dlog("snapshot-logerr", String(e)); }
     if (!state.active) {
       // No live sheet — show setup (only act if we're not already there, avoids flicker)
       if (document.getElementById("appScreen").style.display === "block") {
         document.getElementById("appScreen").style.display = "none";
       }
       document.getElementById("setupScreen").style.display = "flex";
+      dlog("NOT-ACTIVE", "snapshot says no live sheet -> showing SETUP screen");
       buildSetup();
       _lastActiveItemsSig = null;
       _userPage = null; // new sheet should start at its first section, not a stale one
@@ -892,6 +931,10 @@ function startLiveSync(){
     // showing" state and leaving the screen blank until the user manually navigated.
     const sig = activeItemsSignature(state.activeItems);
     const structureChanged = sig !== _lastActiveItemsSig;
+    dlog("structure", "changed=" + structureChanged
+      + "\n    oldSig=" + _lastActiveItemsSig
+      + "\n    newSig=" + sig
+      + "\n    activeId=" + activeId + " userPage=" + _userPage);
     _lastActiveItemsSig = sig;
 
     document.getElementById("setupScreen").style.display = "none";
@@ -1094,6 +1137,7 @@ function buildSidebar() {
 
 // ─── PAGES ────────────────────────────────────────────────────────────────────
 function buildPages() {
+  dlog("buildPages", "rebuilding all page DOM");
   const main = document.getElementById("mainContent");
   if (!main) return;
   main.innerHTML = "";
@@ -1267,6 +1311,10 @@ function buildPages() {
 }
 
 function goPage(id) {
+  try {
+    const st = (new Error().stack||"").split("\n").slice(2,5).map(s=>s.trim()).join(" <- ");
+    dlog("goPage", "-> " + id + "   (from: " + st + ")");
+  } catch(e){}
   activeId = id;
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("show"));
   const pg = document.getElementById("page-"+id); if(pg) pg.classList.add("show");
@@ -1841,6 +1889,7 @@ function renderRecon() {
 const liveDoc = () => dbfs.collection("banquet_live").doc("current");
 
 function set(sid,it,field,val){
+  dlog("set", sid + " / " + it + " / " + field + " = " + val);
   const oldVal = DAT[sid] && DAT[sid][it] ? DAT[sid][it][field] : "";
   if(DAT[sid]&&DAT[sid][it]) DAT[sid][it][field]=val;
   render();
