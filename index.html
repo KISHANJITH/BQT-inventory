@@ -847,6 +847,9 @@ function activeItemsSignature(activeItems) {
 // ─── LIVE SYNC (Firestore real-time listener — no polling needed) ────────────
 let _appliedRemoteOnce = false;
 let _lastActiveItemsSig = null;
+// The page the user last deliberately opened. Live-sync rebuilds restore this rather than
+// resetting to the first section, so an incoming update can never relocate someone.
+let _userPage = null;
 function startLiveSync(){
   stopLiveSync();
   _appliedRemoteOnce = false;
@@ -866,6 +869,7 @@ function startLiveSync(){
       document.getElementById("setupScreen").style.display = "flex";
       buildSetup();
       _lastActiveItemsSig = null;
+      _userPage = null; // new sheet should start at its first section, not a stale one
       document.getElementById("authLoading").classList.remove("show");
       return;
     }
@@ -873,6 +877,12 @@ function startLiveSync(){
     // focused. (Previously this returned early whenever any field had focus, which on a
     // banquet sheet is almost always true while working, so other devices' changes were
     // being silently thrown away.) render() protects the specific field you're typing in.
+    // Defensive: a snapshot that claims to be an active sheet but carries no selected items
+    // is malformed/incomplete. Acting on it would rebuild the pages with nothing in them and
+    // bounce the user somewhere else, so we ignore it and wait for a well-formed one.
+    const incomingItems = state.activeItems || {};
+    if (Object.keys(incomingItems).length === 0) return;
+
     _appliedRemoteOnce = true;
     hydrateFromLive(state);
 
@@ -890,15 +900,14 @@ function startLiveSync(){
 
     if (structureChanged) {
       buildSidebar(); buildPages(); buildMobileNav();
-      // buildPages() recreates the page elements, so we must re-apply which one is showing.
-      // Critically: if the section you were working in still exists, stay there. Only fall
-      // back to the first section when your current page genuinely no longer exists (e.g.
-      // a brand new sheet, or a save was loaded with a different set of items). Previously
-      // this always jumped to the first section, which yanked you out of Liqueur (or
-      // wherever you were) mid-entry any time this branch fired.
-      const stillExists = activeId && document.getElementById("page-" + activeId);
-      if (stillExists) {
-        goPage(activeId);
+      // buildPages() recreates the page elements, so re-apply which one is showing.
+      // Always prefer the page the user deliberately opened. Only fall back to the first
+      // section when that page genuinely no longer exists (a brand new sheet, or a loaded
+      // save with a different set of items). This is what stops live-sync rebuilds from
+      // yanking someone out of Prem wine (or wherever they are) mid-entry.
+      const preferred = _userPage || activeId;
+      if (preferred && document.getElementById("page-" + preferred)) {
+        goPage(preferred);
       } else {
         const first = ALL_SECS.find(s => ACTIVE[s.id] && ACTIVE[s.id].size > 0);
         goPage(first ? first.id : "summary");
@@ -1268,6 +1277,9 @@ function goPage(id) {
   if(mnav) mnav.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
   if (id === "activity") startActivityWatch(); else stopActivityWatch();
   if (id === "accounts") loadAccounts();
+  // Remember where the user actually wants to be. Rebuilds triggered by live sync restore
+  // THIS, so a background update can never silently relocate someone mid-entry.
+  _userPage = id;
 }
 
 function buildMobileNav() {
